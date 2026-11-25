@@ -175,7 +175,8 @@
       '<h1 class="home-h1">Immobilienkaufmann/-frau<span>' + (years.length === 1 ? years[0] + '. Ausbildungsjahr' : 'Ausbildung') + '</span></h1>' +
       '<p class="lead">' + all + ' Lernkarten · ' + d + ' gelernt · ' + stars + ' auf dem Merkzettel.</p>' +
       '<div class="quickgrid">' + qb('#/abfragen', 'Abfragen', due + ' fällig') + qb('#/pruefung', 'Wissen prüfen', FRAGEN.length + ' Fragen') +
-      qb('#/merken', 'Merkzettel', stars + ' Karten') + qb('#/az', 'A–Z', GLOSSAR.length + ' Begriffe') + qb('', 'Teilen', 'WhatsApp & Co.', '', 'sharebtn') + '</div>' +
+      qb('#/merken', 'Merkzettel', stars + ' Karten') + qb('#/az', 'A–Z', GLOSSAR.length + ' Begriffe') + qb('#/plan', 'Stundenplan', 'Mo–Fr') + qb('#/kalender', 'Kalender', (window.ImmoPlan ? window.ImmoPlan.data().cal.length : 0) + ' Termine') + '</div>' +
+      (window.ImmoPlan ? window.ImmoPlan.nextHtml() : '') +
       '<div class="viewswitch" role="group" aria-label="Ansicht"><span>Ansicht:</span><button data-mode="list"' + (gridOn ? '' : ' class="on" aria-pressed="true"') + '>Liste</button><button data-mode="grid"' + (gridOn ? ' class="on" aria-pressed="true"' : '') + '>Kacheln</button></div>';
     years.forEach(function (y) {
       var lfs = AREAS.filter(function (a) { return a.year === y && a.kind === 'lf'; }), fa = AREAS.filter(function (a) { return a.year === y && a.kind !== 'lf'; });
@@ -185,8 +186,9 @@
       if (y === 1) html += '<div class="section-title">Sport</div><div class="hint">Sport steht auch auf dem Stundenplan (laut Stundentafel MV). Dafür gibt es keine Lernkarten – er wird praktisch bewertet.</div>';
     });
     html += '<div class="section-title">Gut zu wissen</div><div class="hint">Grundlage: KMK-Rahmenlehrplan Immobilienkaufmann/-frau (2006), Ausbildungsverordnung (2006) und Stundentafel der Berufsschulverordnung MV. Deine Schule kann Reihenfolge und Themen anders verteilen – Stellen mit ⚠ zeigen das.</div>' +
-      '<div class="section-title">Deine Daten</div><div class="hint">Haken, Merkzettel, Notizen und Karteikasten bleiben nur auf diesem Gerät. Für ein neues Handy oder als Sicherung:' +
+      '<div class="section-title">Deine Daten</div><div class="hint">Haken, Merkzettel, Notizen, Karteikasten, Stundenplan und Termine bleiben nur auf diesem Gerät. Für ein neues Handy oder als Sicherung (ohne Foto):' +
       '<div class="actions"><button class="btn" id="exp">Sicherung speichern</button><label class="btn" for="imp">Sicherung laden</label><input type="file" id="imp" accept=".json,application/json" hidden></div></div>' +
+      '<div class="section-title">App weitergeben</div><div class="actions"><button class="btn" id="sharebtn">Link teilen (WhatsApp & Co.)</button></div>' +
       '<div class="section-title">Farbe</div>' + '<div class="colors" role="group" aria-label="Farbe">' + ACCENTS.map(function (c) {
         return '<button data-accent="' + c[0] + '" style="background:' + c[1] + '" aria-label="' + c[2] + '" title="' + c[2] + '"' + (getPref('accent', 'gruen') === c[0] ? ' class="on" aria-pressed="true"' : '') + '></button>';
       }).join('') + '</div>' + '</div>';
@@ -195,7 +197,7 @@
     main.querySelectorAll('.colors button').forEach(function (b) { b.addEventListener('click', function () { setPref('accent', b.dataset.accent); applyTheme(); viewHome(); }); });
     main.querySelectorAll('.viewswitch button').forEach(function (b) { b.addEventListener('click', function () { setPref('tiles', b.dataset.mode); viewHome(); }); });
     $('#exp').addEventListener('click', function () {
-      var blob = new Blob([JSON.stringify({ app: 'immo-kaufmann', v: 2, saved: new Date().toISOString(), data: S }, null, 1)], { type: 'application/json' });
+      var blob = new Blob([JSON.stringify({ app: 'immo-kaufmann', v: 2, saved: new Date().toISOString(), data: S, plan: window.ImmoPlan ? window.ImmoPlan.data() : null }, null, 1)], { type: 'application/json' });
       var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'immo-kaufmann-sicherung.json';
       document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
     });
@@ -204,7 +206,7 @@
       f.text().then(function (t) {
         var j = JSON.parse(t); if (!j || j.app !== 'immo-kaufmann' || !j.data) throw new Error('x');
         if (!confirm('Sicherung laden? Die jetzigen Haken, Notizen und der Merkzettel auf diesem Gerät werden ersetzt.')) return;
-        S = { done: j.data.done || {}, star: j.data.star || {}, notes: j.data.notes || {}, box: j.data.box || {}, qs: j.data.qs || {}, hl: j.data.hl || {}, bag: j.data.bag || {} }; save(); viewHome();
+        S = { done: j.data.done || {}, star: j.data.star || {}, notes: j.data.notes || {}, box: j.data.box || {}, qs: j.data.qs || {}, hl: j.data.hl || {}, bag: j.data.bag || {} }; save(); if (j.plan && window.ImmoPlan) window.ImmoPlan.restore(j.plan); viewHome();
       }).catch(function () { alert('Diese Datei ist keine Sicherung von Immo Kaufmann.'); });
     });
   }
@@ -441,14 +443,14 @@
     var list = scopeList(b), due = dueList(list), counts = [0, 0, 0, 0, 0, 0];
     list.forEach(function (e) { counts[boxOf(e.sub.id).f]++; });
     main.innerHTML = '<div class="content"><div class="crumb"><a href="#/">Start</a> › Abfragen</div><h1>Abfragen</h1>' +
-      '<p class="lead">Wie ein Karteikasten: Du siehst die Frage, denkst nach, deckst die Karte auf. Gewusst → die Karte rückt ein Fach weiter und kommt später wieder. Nicht gewusst → zurück in Fach 1.</p>' +
+      '<p class="lead">Wie ein Karteikasten: Du siehst die Frage, denkst nach, deckst die Karte auf. Gewusst → die Karte steigt eine Stufe und kommt später wieder. Nicht gewusst → zurück auf Stufe 1.</p>' +
       '<fieldset><legend>Welche Karten?</legend><select id="scope" class="sel">' +
       '<option value="all">Alle Karten</option><option value="star"' + (b === 'star' ? ' selected' : '') + '>Merkzettel</option>' +
       AREAS.map(function (a) { return '<option value="' + a.id + '"' + (b === a.id ? ' selected' : '') + '>' + esc(areaLabel(a) + ': ' + plain(a.title)) + '</option>'; }).join('') +
       '</select></fieldset>' +
       '<div class="boxes">' + [1, 2, 3, 4, 5].map(function (f) {
-        return '<a class="boxf" href="#/fach?f=' + f + '&b=' + b + '"><b>' + counts[f] + '</b><span>Fach ' + f + '</span><small>' + (f === 1 ? 'neu/nochmal' : 'nach ' + INTERVAL[f] + ' Tag' + (INTERVAL[f] > 1 ? 'en' : '')) + '</small></a>';
-      }).join('') + '</div><p class="muted" style="font-size:14px;margin:-4px 0 8px">Tippe auf ein Fach, um Karten anzusehen, zu verschieben oder einzelne abzufragen.</p>' +
+        return '<a class="boxf" href="#/fach?f=' + f + '&b=' + b + '"><b>' + counts[f] + '</b><span>Stufe ' + f + '</span><small>' + (f === 1 ? 'neu/nochmal' : 'nach ' + INTERVAL[f] + ' Tag' + (INTERVAL[f] > 1 ? 'en' : '')) + '</small></a>';
+      }).join('') + '</div><p class="muted" style="font-size:14px;margin:-4px 0 8px">Tippe auf eine Stufe, um Karten anzusehen, zu verschieben oder einzelne abzufragen.</p>' +
       '<p class="count">' + due.length + ' von ' + list.length + ' Karten sind heute dran.</p>' +
       '<div class="actions">' + (due.length ? '<a class="btn primary" href="#/abfragen?b=' + b + '&go=1">Los geht’s (' + due.length + ')</a>' : '<span class="hint" style="display:block">Für heute ist alles erledigt. 👍</span>') +
       '<a class="btn" href="#/abfragen?b=' + b + '&go=1&all=1">Alle ' + list.length + ' üben</a><a class="btn" href="#/fach?f=0&b=' + b + '">Karten selbst auswählen</a></div></div>';
@@ -462,7 +464,7 @@
     }
     var e = BYID[quiz.queue[0]], bx = boxOf(e.sub.id), doneN = quiz.total - quiz.queue.length;
     main.innerHTML = '<div class="content quiz"><div class="crumb"><a href="#/abfragen?b=' + quiz.b + '">Abfragen</a> › ' + esc(scopeName(quiz.b)) + '</div>' +
-      '<div class="qbar"><span>Karte ' + Math.min(doneN + 1, quiz.total) + ' von ' + quiz.total + ' · Fach ' + bx.f + '</span>' +
+      '<div class="qbar"><span>Karte ' + Math.min(doneN + 1, quiz.total) + ' von ' + quiz.total + ' · Stufe ' + bx.f + '</span>' +
       '<button class="starbtn small' + (isStar(e.sub.id) ? ' on' : '') + '" id="qstar">' + (isStar(e.sub.id) ? '★' : '☆') + '</button></div>' +
       '<div class="progress"><i style="width:' + Math.round(doneN * 100 / Math.max(1, quiz.total)) + '%"></i></div>' +
       '<div class="card qcard" id="qcard" data-card="' + esc(e.sub.id) + '">' + cardHead(e) +
@@ -489,21 +491,26 @@
 
   /* ---------- Fächer des Karteikastens: ansehen, verschieben, auswählen ---------- */
   function viewFach(params) {
-    setNav('abfragen'); document.title = 'Karteikasten – Immo Kaufmann';
+    setNav('abfragen'); document.title = 'Karten auswählen – Immo Kaufmann';
     var b = params.b || 'all', f = parseInt(params.f, 10) || 0;
     var list = scopeList(b).filter(function (e) { return !f || boxOf(e.sub.id).f === f; });
-    var tabs = [0, 1, 2, 3, 4, 5].map(function (n) {
-      return '<a href="#/fach?f=' + n + '&b=' + b + '"' + (n === f ? ' class="on"' : '') + '>' + (n ? 'Fach ' + n : 'Alle') + '</a>';
+    var url = function (nb, nf) { return '#/fach?b=' + nb + '&f=' + nf; };
+    var areaTabs = '<a href="' + url('all', f) + '"' + (b === 'all' ? ' class="on"' : '') + '>Alle</a>' + AREAS.map(function (a) {
+      return '<a href="' + url(a.id, f) + '"' + (b === a.id ? ' class="on"' : '') + '>' + esc(sqLabel(a)[0]) + '</a>';
+    }).join('') + (Object.keys(S.star).length ? '<a href="' + url('star', f) + '"' + (b === 'star' ? ' class="on"' : '') + '>★ Merkzettel</a>' : '');
+    var stufen = '<a href="' + url(b, 0) + '"' + (!f ? ' class="on"' : '') + '>alle</a>' + [1, 2, 3, 4, 5].map(function (n) {
+      return '<a href="' + url(b, n) + '"' + (n === f ? ' class="on"' : '') + '>' + n + '</a>';
     }).join('');
-    main.innerHTML = '<div class="content"><div class="crumb"><a href="#/abfragen?b=' + b + '">Abfragen</a> › ' + esc(scopeName(b)) + '</div>' +
-      '<h1>' + (f ? 'Fach ' + f : 'Alle Fächer') + '</h1><nav class="ftabs">' + tabs + '</nav>' +
+    main.innerHTML = '<div class="content"><div class="crumb"><a href="#/abfragen?b=' + b + '">Abfragen</a> › Karten auswählen</div>' +
+      '<h1>Karten auswählen</h1><p class="muted" style="margin:0 0 6px;font-size:14px">Lernfeld oder Fach</p><nav class="ftabs">' + areaTabs + '</nav>' +
+      '<p class="muted" style="margin:6px 0 6px;font-size:14px">Stufe im Karteikasten (1 = neu oder nochmal, 5 = sitzt)</p><nav class="ftabs small">' + stufen + '</nav>' +
       '<div class="selbar"><label class="opt"><input type="checkbox" id="selall"> Alle auswählen</label><span id="selcount" class="muted">0 ausgewählt</span></div>' +
       (list.length ? '<ul class="flist">' + list.map(function (e) {
         var bx = boxOf(e.sub.id);
-        return '<li><label><input type="checkbox" class="selc" value="' + esc(e.sub.id) + '"><span><small>' + esc(e.area.short || areaLabel(e.area)) + ' · ' + e.num + '</small>' + md(e.sub.title) + '</span></label><span class="fbadge">F' + bx.f + '</span></li>';
-      }).join('') + '</ul>' : '<p class="hint">In diesem Fach liegen keine Karten.</p>') +
+        return '<li><label><input type="checkbox" class="selc" value="' + esc(e.sub.id) + '"><span><small>' + e.num + ' · Stufe ' + bx.f + '</small>' + md(e.sub.title) + '</span></label><span class="fbadge">' + esc(sqLabel(e.area)[0]) + '</span></li>';
+      }).join('') + '</ul>' : '<p class="hint">Hier liegen keine Karten.</p>') +
       '<div class="selactions"><button class="btn primary" id="selquiz" disabled>Auswahl abfragen</button>' +
-      '<span class="moveto"><select id="seltarget" class="sel" aria-label="Zielfach">' + [1, 2, 3, 4, 5].map(function (n) { return '<option value="' + n + '">nach Fach ' + n + '</option>'; }).join('') + '</select>' +
+      '<span class="moveto"><select id="seltarget" class="sel" aria-label="Zielstufe">' + [1, 2, 3, 4, 5].map(function (n) { return '<option value="' + n + '">auf Stufe ' + n + '</option>'; }).join('') + '</select>' +
       '<button class="btn" id="selmove" disabled>Verschieben</button></span></div></div>';
     function picked() { return Array.prototype.map.call(main.querySelectorAll('.selc:checked'), function (c) { return c.value; }); }
     function upd() { var n = picked().length; $('#selcount').textContent = n + ' ausgewählt'; $('#selquiz').disabled = !n; $('#selmove').disabled = !n; }
@@ -514,9 +521,10 @@
       var t = parseInt($('#seltarget').value, 10), ids = picked();
       ids.forEach(function (id) { S.box[id] = { f: t, due: t === 1 ? 0 : Date.now() + INTERVAL[t] * DAY - 36e5 }; if (t === 5) S.done[id] = 1; });
       save(); viewFach(params);
-      var m = document.createElement('p'); m.className = 'toast'; m.textContent = ids.length + (ids.length === 1 ? ' Karte' : ' Karten') + ' nach Fach ' + t + ' verschoben.'; main.querySelector('.content').prepend(m);
+      var m = document.createElement('p'); m.className = 'toast'; m.textContent = ids.length + (ids.length === 1 ? ' Karte' : ' Karten') + ' auf Stufe ' + t + ' verschoben.'; main.querySelector('.content').prepend(m);
     });
   }
+
 
   /* ---------- Prüfungsfragen ---------- */
   var exam = null;
@@ -841,6 +849,8 @@
     else if (p[0] === 'merken') viewStars();
     else if (p[0] === 'abfragen') viewQuiz(params);
     else if (p[0] === 'fach') viewFach(params);
+    else if (p[0] === 'plan') { setNav(''); window.ImmoPlan.viewPlan(main); }
+    else if (p[0] === 'kalender') { setNav(''); window.ImmoPlan.viewCal(main); }
     else if (p[0] === 'az') viewAZ(params);
     else if (p[0] === 'pruefung') viewExam(params);
     else viewHome();

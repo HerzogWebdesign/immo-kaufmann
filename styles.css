@@ -455,3 +455,64 @@ details.pp-area .flist{border:none;border-top:1px solid var(--line);border-radiu
 .selactions .count{margin-right:auto}
 .markbar .mb-erase{background:var(--surface) !important;color:var(--ink);font-size:16px;display:flex;align-items:center;justify-content:center}
 .selactions{padding-right:68px}
+.quickgrid{grid-template-columns:repeat(6,1fr)}
+@media (max-width:620px){ .quickgrid{grid-template-columns:repeat(3,1fr)} }
+
+/* ---------- Stundenplan ---------- */
+.tt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table.tt{border-collapse:collapse;width:100%;min-width:520px;font-size:14px;table-layout:fixed}
+table.tt th,table.tt td{border:1px solid var(--line);padding:4px 5px;vertical-align:top;text-align:left}
+table.tt thead th{background:var(--accent-soft);color:var(--accent);text-align:center;font-size:14px}
+table.tt th.tt-h{width:62px;background:var(--bg);font-weight:400}
+table.tt th.tt-h b{display:block;font-size:15px}
+table.tt th.tt-h small{display:block;font-size:10.5px;color:var(--muted);line-height:1.2}
+table.tt td{height:46px;line-height:1.25;overflow-wrap:anywhere}
+table.tt td.full{background:var(--accent-soft)}
+table.tt .today{outline:2px solid var(--accent);outline-offset:-2px}
+.tt-in{width:100%;font:inherit;font-size:14px;border:1px solid var(--line);border-radius:6px;padding:3px;background:var(--bg);color:var(--ink);resize:vertical}
+.tt-time{width:100%;font-size:10.5px;border:1px solid var(--line);border-radius:4px;padding:2px;background:var(--surface);color:var(--ink)}
+.tt-foto{border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:70vh;background:var(--surface)}
+.tt-foto img{display:block;width:100%;cursor:zoom-in}
+.tt-foto img.zoom{width:250%;max-width:none;cursor:zoom-out}
+
+/* ---------- Kalender ---------- */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
+.cal-nav b{font-size:18px}
+.cal-nav .btn{min-width:44px;justify-content:center;font-size:20px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-w{text-align:center;font-size:12px;color:var(--muted);font-weight:700}
+.cal-d{aspect-ratio:1;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;padding:3px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;cursor:pointer;min-width:0}
+.cal-d.empty{border:none;background:none}
+.cal-d span{font-size:14px}
+.cal-d i{display:flex;gap:2px;min-height:6px}
+.cal-d em{width:6px;height:6px;border-radius:50%;display:block}
+.cal-d.today{border:2px solid var(--accent);font-weight:800}
+.cal-d.sel{background:var(--accent-soft);border-color:var(--accent)}
+.cal-form{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 12px}
+.cal-form h3{margin:0 0 8px;font-size:16px}
+.cal-form label{display:block;font-size:14px;color:var(--muted);margin:0 0 8px}
+.cal-form .gq,.cal-form .sel{margin:2px 0 0;color:var(--ink)}
+.cf-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+@media (max-width:480px){ .cf-row{grid-template-columns:1fr 1fr} }
+.cal-list{list-style:none;margin:0;padding:0}
+.cal-e{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;margin:0 0 8px}
+.cal-dot{width:12px;height:12px;border-radius:50%;flex:none;margin-top:5px;display:inline-block}
+.cal-et{flex:1;min-width:0}
+.cal-et small{display:block;color:var(--muted);font-size:12.5px}
+.cal-et b{display:block}
+.cal-et span{display:block;font-size:14px;color:var(--muted)}
+.cal-ea{display:flex;gap:4px}
+.cal-ea .btn{min-height:40px;min-width:40px;padding:0 8px;justify-content:center}
+.cal-list.mini li a{display:flex;align-items:center;gap:8px;text-decoration:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:0 0 6px;font-size:15px}
+.cal-list.mini .cal-dot{margin:0}
+.cal-list.mini small{color:var(--muted);white-space:nowrap}
+.ftabs.small a{min-width:38px;justify-content:center;padding:4px 8px}
+@media (max-width:620px){
+  table.tt{min-width:0;font-size:12.5px}
+  table.tt th.tt-h{width:46px}
+  table.tt th.tt-h small{font-size:9px}
+  table.tt th,table.tt td{padding:3px}
+  .tt-in{font-size:16px}
+}
+table.tt .today{outline:none;box-shadow:inset 0 0 0 2px var(--accent)}
+table.tt thead th.today{background:var(--accent);color:var(--accent-ink)}
