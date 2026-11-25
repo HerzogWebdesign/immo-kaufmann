@@ -438,3 +438,20 @@ details.pick summary{cursor:pointer;padding:10px 12px;font-weight:700;min-height
 .pick-bar{display:flex;gap:12px;margin:0 0 6px;font-size:14px}
 .pick .flist{max-height:340px;overflow:auto}
 .js-bag.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+/* Druckseite: Kartenauswahl mit Häkchen */
+fieldset.picker{padding-bottom:6px}
+.allrow{font-size:17px}
+.pp-quick{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.pp-quick .btn{min-height:38px;font-size:14px;padding:4px 10px}
+details.pp-area{border:1px solid var(--line);border-radius:10px;margin:0 0 8px;background:var(--bg)}
+details.pp-area summary{list-style:none;cursor:pointer;padding:6px 10px;display:flex;align-items:center;gap:8px}
+details.pp-area summary::-webkit-details-marker{display:none}
+details.pp-area summary::after{content:"▾";margin-left:auto;color:var(--muted);transition:transform .15s}
+details.pp-area[open] summary::after{transform:rotate(180deg)}
+.pp-ahead{display:flex;align-items:center;gap:8px;min-height:40px;font-weight:700;font-size:15px;cursor:pointer}
+.pp-ahead input,.allrow input{width:22px;height:22px;accent-color:var(--accent);flex:none}
+.pp-n{font-weight:400;color:var(--muted);font-size:13px}
+details.pp-area .flist{border:none;border-top:1px solid var(--line);border-radius:0 0 10px 10px}
+.selactions .count{margin-right:auto}
+.markbar .mb-erase{background:var(--surface) !important;color:var(--ink);font-size:16px;display:flex;align-items:center;justify-content:center}
+.selactions{padding-right:68px}

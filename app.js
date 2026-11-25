@@ -366,7 +366,8 @@
     function renderBar() {
       bar.innerHTML = '<span class="mb-t">Farbe:</span>' + HL_COLORS.map(function (c) {
         return '<button class="mb-c' + (color() === c[0] ? ' on' : '') + '" data-c="' + c[0] + '" style="background:' + c[1] + '" aria-label="' + c[2] + '" title="' + c[2] + '"></button>';
-      }).join('') + '<button class="mb-x" id="markclear"' + (markCount(id) ? '' : ' hidden') + '>Alle löschen</button><button class="mb-done" id="markdone">Fertig</button>';
+      }).join('') + '<button class="mb-c mb-erase' + (color() === 'weg' ? ' on' : '') + '" data-c="weg" aria-label="Radierer: Markierung entfernen" title="Radierer">⌫</button>' +
+        '<button class="mb-x" id="markclear"' + (markCount(id) ? '' : ' hidden') + '>Alle löschen</button><button class="mb-done" id="markdone">Fertig</button>';
       bar.querySelectorAll('.mb-c').forEach(function (b) { b.addEventListener('click', function () { setPref('hlcolor', b.dataset.c); renderBar(); }); });
       $('#markclear').addEventListener('click', function () { if (confirm('Alle Markierungen auf dieser Seite löschen?')) { delete S.hl[id]; save(); paint(); } });
       $('#markdone').addEventListener('click', function () { setMode(false); });
@@ -387,7 +388,7 @@
       if (!key) return;
       ev.preventDefault();
       var m = S.hl[id] || (S.hl[id] = {}), c = color();
-      if (m[key] && hlKey(m[key]) === c) delete m[key]; else m[key] = c;
+      if (c === 'weg' || (m[key] && hlKey(m[key]) === c)) delete m[key]; else m[key] = c;
       if (!Object.keys(m).length) delete S.hl[id];
       save(); paint();
     });
@@ -716,7 +717,7 @@
     var base = '#/druckansicht?' + (params.ids ? 'ids=' + params.ids : 'b=' + (params.b || 'all') + (params.only ? '&only=1' : ''));
     var standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
     var per = m === 'a4' ? 4 : m === 'a7x8' ? 8 : 1;
-    var back = params.ids && BYID[params.ids.split(',')[0]] ? '#/s/' + params.ids.split(',')[0] : '#/druck';
+    var back = params.ids && params.ids.indexOf(',') < 0 && BYID[params.ids] ? '#/s/' + params.ids : '#/druck';
     main.innerHTML = '<div class="content"><div class="crumb"><a href="' + back + '">Zurück</a> › Druckansicht</div>' +
       '<h1>Druckansicht</h1><div class="fmt" role="group" aria-label="Format">' + FORMATS.map(function (f) {
         return '<a href="' + base + '&m=' + f[0] + (noNote ? '&nn=1' : '') + '"' + (f[0] === m ? ' class="on" aria-current="true"' : '') + '>' + f[1] + '</a>';
@@ -751,35 +752,71 @@
     $('#dopdf').addEventListener('click', function () { var l = list(); if (l.length) makePdf(l, m, noNote); });
     var dp = $('#doprint'); if (dp) dp.addEventListener('click', function () { var l = list(); if (l.length) printCards(l, m, false, noNote); });
   }
+  var printPick = null;
   function viewPrint(params) {
     setNav('druck'); document.title = 'Drucken – Immo Kaufmann';
-    var sel = params.b || (Object.keys(S.bag).length ? 'mappe' : 'all');
-    var opt = function (v, label) { return '<div class="opt"><input type="radio" name="b" id="b-' + v + '" value="' + v + '"' + (sel === v ? ' checked' : '') + '><label for="b-' + v + '">' + label + '</label></div>'; };
-    main.innerHTML = '<div class="content"><div class="crumb"><a href="#/">Start</a> › Drucken</div><h1>Lernkarten drucken oder als PDF speichern</h1>' +
-      '<p class="lead">Wähle Karten und Format. In der Druckansicht siehst du die Karten vorher und kannst sie drucken oder als PDF sichern.</p>' +
-      '<fieldset><legend>Welche Karten?</legend>' + opt('mappe', 'Druckmappe (' + Object.keys(S.bag).filter(function (id) { return BYID[id]; }).length + ' Karten)') + opt('all', 'Alle') + opt('star', 'Merkzettel') +
-      AREAS.map(function (a) { return opt(a.id, a.year + '. Jahr · ' + areaLabel(a) + ': ' + md(a.title)); }).join('') +
-      '<div class="opt"><input type="checkbox" id="only-open"><label for="only-open">Nur Karten, die noch nicht „gelernt“ sind</label></div></fieldset>' +
-      '<fieldset><legend>Format</legend>' +
-      '<div class="opt"><input type="radio" name="m" id="m-a4" value="a4" checked><label for="m-a4">4 Karten auf A4 zum Ausschneiden</label></div>' +
-      '<div class="opt"><input type="radio" name="m" id="m-a6" value="a6"><label for="m-a6">Einzeln auf A6-Papier oder Karteikarten</label></div>' +
-      '<div class="opt"><input type="radio" name="m" id="m-a7x8" value="a7x8"><label for="m-a7x8">Klein (A7, etwa Spielkarte): 8 Karten auf A4 quer zum Ausschneiden</label></div>' +
-      '<div class="opt"><input type="radio" name="m" id="m-a7" value="a7"><label for="m-a7">Klein (A7) einzeln</label></div></fieldset>' +
-      '<p class="count" id="count"></p><div class="actions"><button class="btn primary" id="go">Weiter zur Druckansicht</button></div></div>';
-    function pick() {
-      var b = (document.querySelector('input[name=b]:checked') || {}).value, only = $('#only-open').checked;
-      return scopeList(b).filter(function (e) { return !only || !isDone(e.sub.id); });
+    // Startauswahl: Bereich aus dem Link, sonst Druckmappe, sonst nichts
+    if (params.b || !printPick) {
+      printPick = {};
+      var start = params.b ? scopeList(params.b) : (Object.keys(S.bag).length ? scopeList('mappe') : []);
+      start.forEach(function (e) { printPick[e.sub.id] = 1; });
+      if (params.b) history.replaceState(null, '', '#/druck');
     }
-    function upd() {
-      var n = pick().length, m = (document.querySelector('input[name=m]:checked') || {}).value;
-      $('#count').textContent = n + ' Karten → ' + ({ a4: Math.ceil(n / 4) + ' Blatt A4', a6: n + ' Blatt A6', a7x8: Math.ceil(n / 8) + ' Blatt A4 quer', a7: n + ' Blatt A7' })[m];
+    var fm = getPref('printfmt', 'a4');
+    var bagN = Object.keys(S.bag).filter(function (id) { return BYID[id]; }).length, starN = Object.keys(S.star).filter(function (id) { return BYID[id]; }).length;
+    var openArea = params.b && BYID[params.b] && BYID[params.b].type === 'area' ? params.b : '';
+    main.innerHTML = '<div class="content"><div class="crumb"><a href="#/">Start</a> › Drucken</div><h1>Lernkarten drucken</h1>' +
+      '<fieldset><legend>Format</legend>' + FORMATS.map(function (f) {
+        return '<div class="opt"><input type="radio" name="m" id="m-' + f[0] + '" value="' + f[0] + '"' + (fm === f[0] ? ' checked' : '') + '><label for="m-' + f[0] + '">' + f[1] + '</label></div>';
+      }).join('') + '</fieldset>' +
+      '<fieldset class="picker"><legend>Karten auswählen</legend>' +
+      '<label class="opt allrow"><input type="checkbox" id="pp-all"> <b>Alle Karten</b></label>' +
+      '<div class="pp-quick">' + (bagN ? '<button class="btn" id="pp-bag" type="button">Druckmappe (' + bagN + ')</button>' : '') +
+      (starN ? '<button class="btn" id="pp-star" type="button">Merkzettel (' + starN + ')</button>' : '') +
+      '<button class="btn" id="pp-open" type="button">Nur nicht gelernte</button><button class="btn" id="pp-none" type="button">Keine</button></div>' +
+      AREAS.map(function (a) {
+        return '<details class="pp-area"' + (a.id === openArea ? ' open' : '') + ' data-a="' + a.id + '"><summary><label class="pp-ahead"><input type="checkbox" class="pp-a" data-a="' + a.id + '"> ' +
+          esc(areaLabel(a)) + ': ' + titleLines(a).map(esc).join(' ') + ' <span class="pp-n" data-a="' + a.id + '"></span></label></summary><ul class="flist">' +
+          SUBS.filter(function (e) { return e.area === a; }).map(function (e) {
+            return '<li><label><input type="checkbox" class="pp-c" data-a="' + a.id + '" value="' + esc(e.sub.id) + '"><span><small>' + e.num + '</small>' + md(e.sub.title) + '</span></label></li>';
+          }).join('') + '</ul></details>';
+      }).join('') + '</fieldset>' +
+      '<div class="selactions"><span class="count" id="count"></span><button class="btn primary" id="go">Weiter zur Druckansicht</button></div></div>';
+    function sync() {
+      var n = 0;
+      main.querySelectorAll('.pp-c').forEach(function (c) { c.checked = !!printPick[c.value]; if (c.checked) n++; });
+      AREAS.forEach(function (a) {
+        var cs = main.querySelectorAll('.pp-c[data-a="' + a.id + '"]'), on = 0; cs.forEach(function (c) { if (c.checked) on++; });
+        var h = main.querySelector('.pp-a[data-a="' + a.id + '"]'); h.checked = on === cs.length && on > 0; h.indeterminate = on > 0 && on < cs.length;
+        main.querySelector('.pp-n[data-a="' + a.id + '"]').textContent = '(' + on + '/' + cs.length + ')';
+      });
+      var all = $('#pp-all'); all.checked = n === SUBS.length; all.indeterminate = n > 0 && n < SUBS.length;
+      var m = (document.querySelector('input[name=m]:checked') || {}).value, per = m === 'a4' ? 4 : m === 'a7x8' ? 8 : 1;
+      $('#count').textContent = n + (n === 1 ? ' Karte' : ' Karten') + ' → ' + Math.ceil(n / per) + ' Blatt';
+      $('#go').disabled = !n;
     }
-    main.querySelectorAll('input').forEach(function (i) { i.addEventListener('change', upd); }); upd();
+    function setMany(list, v) { list.forEach(function (id) { if (v) printPick[id] = 1; else delete printPick[id]; }); sync(); }
+    $('#pp-all').addEventListener('change', function (ev) { setMany(SUBS.map(function (e) { return e.sub.id; }), ev.target.checked); });
+    main.querySelectorAll('.pp-a').forEach(function (h) {
+      h.addEventListener('click', function (ev) { ev.stopPropagation(); });
+      h.addEventListener('change', function () { setMany(SUBS.filter(function (e) { return e.area.id === h.dataset.a; }).map(function (e) { return e.sub.id; }), h.checked); });
+    });
+    main.querySelectorAll('.pp-c').forEach(function (c) { c.addEventListener('change', function () { setMany([c.value], c.checked); }); });
+    var qb = function (id, fn) { var b = $(id); if (b) b.addEventListener('click', fn); };
+    qb('#pp-bag', function () { printPick = {}; setMany(scopeList('mappe').map(function (e) { return e.sub.id; }), true); });
+    qb('#pp-star', function () { printPick = {}; setMany(scopeList('star').map(function (e) { return e.sub.id; }), true); });
+    qb('#pp-open', function () { Object.keys(printPick).forEach(function (id) { if (isDone(id)) delete printPick[id]; }); sync(); });
+    qb('#pp-none', function () { printPick = {}; sync(); });
+    main.querySelectorAll('input[name=m]').forEach(function (r) { r.addEventListener('change', function () { setPref('printfmt', r.value); sync(); }); });
+    sync();
     $('#go').addEventListener('click', function () {
-      if (!pick().length) return;
-      location.hash = '#/druckansicht?b=' + (document.querySelector('input[name=b]:checked') || {}).value + ($('#only-open').checked ? '&only=1' : '') + '&m=' + document.querySelector('input[name=m]:checked').value;
+      var ids = SUBS.filter(function (e) { return printPick[e.sub.id]; }).map(function (e) { return e.sub.id; });
+      if (!ids.length) return;
+      printExcl = {};
+      location.hash = '#/druckansicht?ids=' + ids.join(',') + '&m=' + document.querySelector('input[name=m]:checked').value;
     });
   }
+
 
   /* ---------- Router ---------- */
   var navDepth = 0;
