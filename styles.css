@@ -318,3 +318,4 @@ a.boxf:hover{border-color:var(--accent)}
 .toast{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 12px;font-weight:700;margin:0 0 10px}
 #themebtn{font-size:18px}
 .pager a{min-width:0;overflow-wrap:anywhere;hyphens:auto;-webkit-hyphens:auto}
+.viewswitch{margin-bottom:2px}

@@ -159,14 +159,14 @@
     };
     var gridOn = tileMode() === 'grid';
     var html = '<div class="content" style="max-width:none">' +
-      '<h1 class="home-h1">Immobilienkaufmann/-frau<span>Ausbildung</span></h1>' +
+      '<h1 class="home-h1">Immobilienkaufmann/-frau<span>' + (years.length === 1 ? years[0] + '. Ausbildungsjahr' : 'Ausbildung') + '</span></h1>' +
       '<p class="lead">' + all + ' Lernkarten · ' + d + ' gelernt · ' + stars + ' auf dem Merkzettel.</p>' +
       '<div class="quickgrid">' + qb('#/abfragen', 'Abfragen', due + ' fällig', 'primary') + qb('#/pruefung', 'Prüfung', FRAGEN.length + ' Fragen') +
       qb('#/merken', 'Merkzettel', stars + ' Karten') + qb('#/az', 'A–Z', GLOSSAR.length + ' Begriffe') + qb('', 'Teilen', 'WhatsApp & Co.', '', 'sharebtn') + '</div>' +
       '<div class="viewswitch" role="group" aria-label="Ansicht"><span>Ansicht:</span><button data-mode="list"' + (gridOn ? '' : ' class="on" aria-pressed="true"') + '>Liste</button><button data-mode="grid"' + (gridOn ? ' class="on" aria-pressed="true"' : '') + '>Kacheln</button></div>';
     years.forEach(function (y) {
       var lfs = AREAS.filter(function (a) { return a.year === y && a.kind === 'lf'; }), fa = AREAS.filter(function (a) { return a.year === y && a.kind !== 'lf'; });
-      html += '<h2 class="year">' + y + '. Ausbildungsjahr</h2>';
+      if (years.length > 1) html += '<h2 class="year">' + y + '. Ausbildungsjahr</h2>';
       if (lfs.length) html += '<div class="section-title">Lernfelder</div><div class="' + (gridOn ? 'sqs' : 'tiles') + '">' + lfs.map(tile).join('') + '</div>';
       if (fa.length) html += '<div class="section-title">Weitere Fächer</div><div class="' + (gridOn ? 'sqs' : 'tiles') + '">' + fa.map(tile).join('') + '</div>';
       if (y === 1) html += '<div class="section-title">Sport</div><div class="hint">Sport steht auch auf dem Stundenplan (laut Stundentafel MV). Dafür gibt es keine Lernkarten – er wird praktisch bewertet.</div>';
