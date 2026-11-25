@@ -435,7 +435,7 @@
       var pool = params.sel ? (window.__immoSel || []).map(function (id) { return BYID[id]; }).filter(Boolean) : params.all ? list : due;
       if (params.sel) { window.__immoSel = null; history.replaceState(null, '', '#/abfragen?b=' + b + '&go=1&all=1'); }
       pool = pool.slice().sort(function (x, y) { return boxOf(x.sub.id).f - boxOf(y.sub.id).f || Math.random() - 0.5; });
-      quiz = { b: b, n: params.n, sel: !!params.sel, queue: pool.map(function (e) { return e.sub.id; }), right: 0, again: 0, total: pool.length, shown: false };
+      quiz = { b: b, n: params.n, sel: !!params.sel, hist: [], queue: pool.map(function (e) { return e.sub.id; }), right: 0, again: 0, total: pool.length, shown: false };
     }
     quizCard();
   }
@@ -467,7 +467,7 @@
     }
     var e = BYID[quiz.queue[0]], bx = boxOf(e.sub.id), doneN = quiz.total - quiz.queue.length;
     main.innerHTML = '<div class="content quiz"><div class="crumb"><a href="#/abfragen?b=' + quiz.b + '">Abfragen</a> › ' + esc(scopeName(quiz.b)) + '</div>' +
-      '<div class="qbar"><span>Karte ' + Math.min(doneN + 1, quiz.total) + ' von ' + quiz.total + ' · Stufe ' + bx.f + '</span>' +
+      '<div class="qbar">' + (quiz.hist.length ? '<button class="btn qprev" id="qprev">‹ Vorherige</button>' : '') + '<span>Karte ' + Math.min(doneN + 1, quiz.total) + ' von ' + quiz.total + ' · Stufe ' + bx.f + '</span>' +
       '<button class="starbtn small' + (isStar(e.sub.id) ? ' on' : '') + '" id="qstar">' + (isStar(e.sub.id) ? '★' : '☆') + '</button></div>' +
       '<div class="progress"><i style="width:' + Math.round(doneN * 100 / Math.max(1, quiz.total)) + '%"></i></div>' +
       '<div class="card qcard" id="qcard" data-card="' + esc(e.sub.id) + '">' + cardHead(e) +
@@ -478,12 +478,22 @@
     applyCardMarks(main);
     $('#reveal').addEventListener('click', function () { $('#qfront').hidden = true; $('#qback').hidden = false; $('#qact').hidden = false; });
     $('#qstar').addEventListener('click', function (ev) { var v = !isStar(e.sub.id); setStar(e.sub.id, v); ev.currentTarget.textContent = v ? '★' : '☆'; ev.currentTarget.classList.toggle('on', v); });
+    var snap = function (kind) { quiz.hist.push({ id: e.sub.id, box: S.box[e.sub.id] ? { f: S.box[e.sub.id].f, due: S.box[e.sub.id].due } : null, done: !!S.done[e.sub.id], kind: kind, queue: quiz.queue.slice(), total: quiz.total }); };
+    var pv = $('#qprev'); if (pv) pv.addEventListener('click', function () {
+      var h = quiz.hist.pop(); if (!h) return;
+      if (h.box) S.box[h.id] = h.box; else delete S.box[h.id];
+      if (h.done) S.done[h.id] = 1; else delete S.done[h.id];
+      if (h.kind === 'right') quiz.right--; else quiz.again--;
+      quiz.queue = h.queue; quiz.total = h.total; save(); quizCard(); window.scrollTo(0, 0);
+    });
     $('#right').addEventListener('click', function () {
+      snap('right');
       var f = Math.min(5, bx.f + 1); S.box[e.sub.id] = { f: f, due: Date.now() + INTERVAL[f] * DAY - 36e5 };
       if (f === 5) S.done[e.sub.id] = 1;
       save(); quiz.right++; quiz.queue.shift(); quizCard(); window.scrollTo(0, 0);
     });
     $('#again').addEventListener('click', function () {
+      snap('again');
       S.box[e.sub.id] = { f: 1, due: 0 }; save(); quiz.again++;
       var id = quiz.queue.shift(); if (quiz.queue.length > 2) quiz.queue.splice(3, 0, id); else quiz.queue.push(id);
       quiz.total++; quizCard(); window.scrollTo(0, 0);
