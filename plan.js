@@ -3,7 +3,7 @@
   'use strict';
   var KEY = 'immo-kaufmann-plan-v1', FOTO = 'immo-kaufmann-planfoto-v1';
   var DAYS = [['mo', 'Mo'], ['di', 'Di'], ['mi', 'Mi'], ['do', 'Do'], ['fr', 'Fr']];
-  var TYPES = [['ka', 'Klassenarbeit', '#c0392b'], ['test', 'Test', '#d35400'], ['pruef', 'Prüfung (IHK)', '#8e44ad'], ['block', 'Berufsschule / Block', '#1f6f5c'], ['abgabe', 'Abgabe', '#2c6fb3'], ['frei', 'Ferien / frei', '#7f8c8d'], ['sonst', 'Sonstiges', '#5c6773']];
+  var TYPES = [['ka', 'Klassenarbeit', '#c0392b'], ['test', 'Test', '#d35400'], ['pruef', 'Prüfung (IHK)', '#8e44ad'], ['block', 'Berufsschule / Block', '#1f6f5c'], ['abgabe', 'Abgabe', '#2c6fb3'], ['urlaub', 'Urlaub', '#0e9f8e'], ['frei', 'Schulferien / frei', '#7f8c8d'], ['sonst', 'Sonstiges', '#5c6773']];
   var P;
   function subjects() {
     var a = (window.IMMO || []).slice().sort(function (x, y) { return (x.kind === y.kind ? 0 : x.kind === 'lf' ? -1 : 1) || (x.nr - y.nr); });
@@ -11,7 +11,7 @@
     return a.map(function (x) { return [x.id, x.kind === 'lf' ? 'Lernfeld ' + x.nr : (lab[x.id] || x.title), x.kind === 'lf' ? 'LF ' + x.nr : (sh[x.id] || x.title)]; }).concat([['sport', 'Sport', 'Sport']]);
   }
   function subj(id) { return subjects().filter(function (x) { return x[0] === id; })[0]; }
-  var SHORT = { ka: 'Klassen\u00ADarbeit', test: 'Test', pruef: 'Prüfung', block: 'Schule', abgabe: 'Abgabe', frei: 'frei' };
+  var SHORT = { ka: 'Klassen\u00ADarbeit', test: 'Test', pruef: 'Prüfung', block: 'Schule', abgabe: 'Abgabe', urlaub: 'Urlaub', frei: 'frei' };
   function load() {
     try { P = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { P = null; }
     if (!P) P = {};
