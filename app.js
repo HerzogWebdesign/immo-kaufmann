@@ -166,9 +166,6 @@
       '<p class="lead">' + all + ' Lernkarten · ' + d + ' gelernt · ' + stars + ' auf dem Merkzettel.</p>' +
       '<div class="quickgrid">' + qb('#/abfragen', 'Abfragen', due + ' fällig', 'primary') + qb('#/pruefung', 'Wissen prüfen', FRAGEN.length + ' Fragen') +
       qb('#/merken', 'Merkzettel', stars + ' Karten') + qb('#/az', 'A–Z', GLOSSAR.length + ' Begriffe') + qb('', 'Teilen', 'WhatsApp & Co.', '', 'sharebtn') + '</div>' +
-      '<div class="colors" role="group" aria-label="Farbe"><span>Farbe:</span>' + ACCENTS.map(function (c) {
-        return '<button data-accent="' + c[0] + '" style="background:' + c[1] + '" aria-label="' + c[2] + '" title="' + c[2] + '"' + (getPref('accent', 'gruen') === c[0] ? ' class="on" aria-pressed="true"' : '') + '></button>';
-      }).join('') + '</div>' +
       '<div class="viewswitch" role="group" aria-label="Ansicht"><span>Ansicht:</span><button data-mode="list"' + (gridOn ? '' : ' class="on" aria-pressed="true"') + '>Liste</button><button data-mode="grid"' + (gridOn ? ' class="on" aria-pressed="true"' : '') + '>Kacheln</button></div>';
     years.forEach(function (y) {
       var lfs = AREAS.filter(function (a) { return a.year === y && a.kind === 'lf'; }), fa = AREAS.filter(function (a) { return a.year === y && a.kind !== 'lf'; });
@@ -179,7 +176,10 @@
     });
     html += '<div class="section-title">Gut zu wissen</div><div class="hint">Grundlage: KMK-Rahmenlehrplan Immobilienkaufmann/-frau (2006), Ausbildungsverordnung (2006) und Stundentafel der Berufsschulverordnung MV. Deine Schule kann Reihenfolge und Themen anders verteilen – Stellen mit ⚠ zeigen das.</div>' +
       '<div class="section-title">Deine Daten</div><div class="hint">Haken, Merkzettel, Notizen und Karteikasten bleiben nur auf diesem Gerät. Für ein neues Handy oder als Sicherung:' +
-      '<div class="actions"><button class="btn" id="exp">Sicherung speichern</button><label class="btn" for="imp">Sicherung laden</label><input type="file" id="imp" accept=".json,application/json" hidden></div></div></div>';
+      '<div class="actions"><button class="btn" id="exp">Sicherung speichern</button><label class="btn" for="imp">Sicherung laden</label><input type="file" id="imp" accept=".json,application/json" hidden></div></div>' +
+      '<div class="section-title">Farbe</div>' + '<div class="colors" role="group" aria-label="Farbe"><span>Farbe:</span>' + ACCENTS.map(function (c) {
+        return '<button data-accent="' + c[0] + '" style="background:' + c[1] + '" aria-label="' + c[2] + '" title="' + c[2] + '"' + (getPref('accent', 'gruen') === c[0] ? ' class="on" aria-pressed="true"' : '') + '></button>';
+      }).join('') + '</div>' + '</div>';
     main.innerHTML = html;
     $('#sharebtn').addEventListener('click', shareApp);
     main.querySelectorAll('.colors button').forEach(function (b) { b.addEventListener('click', function () { setPref('accent', b.dataset.accent); applyTheme(); viewHome(); }); });
@@ -264,7 +264,7 @@
 
 
   /* ---------- Fehler melden (ohne Server: per WhatsApp oder E-Mail) ---------- */
-  var APP_VERSION = 'v14';
+  var APP_VERSION = 'v15';
   function reportHtml(ctx) {
     return '<details class="report"><summary>Fehler gefunden?</summary><div class="report-in">' +
       '<label for="rep-txt">Was stimmt nicht?</label><textarea id="rep-txt" rows="3" placeholder="z. B. Zahl falsch, Satz unklar, Paragraf stimmt nicht …"></textarea>' +
