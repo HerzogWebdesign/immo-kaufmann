@@ -516,3 +516,13 @@ table.tt .today{outline:2px solid var(--accent);outline-offset:-2px}
 }
 table.tt .today{outline:none;box-shadow:inset 0 0 0 2px var(--accent)}
 table.tt thead th.today{background:var(--accent);color:var(--accent-ink)}
+/* Kalender: Termin als Text im Tagesfeld */
+.cal-d{aspect-ratio:auto;min-height:64px;justify-content:flex-start;gap:2px;padding:3px 2px}
+.cal-d span{font-size:13px;line-height:1.1}
+.cal-d em.chip{display:block;width:100%;font-style:normal;color:#fff;font-size:9.5px;line-height:1.1;font-weight:700;border-radius:4px;padding:2px 1px;text-align:center;
+  hyphens:manual;overflow-wrap:break-word;-webkit-print-color-adjust:exact}
+.cal-d em.more{font-style:normal;font-size:10px;color:var(--muted)}
+@media (min-width:620px){ .cal-d{min-height:84px} .cal-d em.chip{font-size:11px} }
+.cal-d em.chip,.cal-d em.more{height:auto}
+.cal-d em.chip{overflow-wrap:normal;word-break:normal;hyphens:manual;-webkit-hyphens:manual;padding:2px 0;letter-spacing:-.2px}
+@media (max-width:619px){ .cal-d em.chip{font-size:8.5px} }

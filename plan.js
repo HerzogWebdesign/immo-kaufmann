@@ -5,6 +5,7 @@
   var DAYS = [['mo', 'Mo'], ['di', 'Di'], ['mi', 'Mi'], ['do', 'Do'], ['fr', 'Fr']];
   var TYPES = [['ka', 'Klassenarbeit', '#c0392b'], ['test', 'Test', '#d35400'], ['pruef', 'Prüfung (IHK)', '#8e44ad'], ['block', 'Berufsschule / Block', '#1f6f5c'], ['abgabe', 'Abgabe', '#2c6fb3'], ['frei', 'Ferien / frei', '#7f8c8d'], ['sonst', 'Sonstiges', '#5c6773']];
   var P;
+  var SHORT = { ka: 'Klassen\u00ADarbeit', test: 'Test', pruef: 'Prüfung', block: 'Schule', abgabe: 'Abgabe', frei: 'frei' };
   function load() {
     try { P = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { P = null; }
     if (!P) P = {};
@@ -97,7 +98,9 @@
     for (var i = 0; i < startDow; i++) cells += '<span class="cal-d empty"></span>';
     for (var dd = 1; dd <= days; dd++) {
       var k = y + '-' + z(m + 1) + '-' + z(dd), ev = byDay[k] || [], cls = 'cal-d' + (k === iso(now) ? ' today' : '') + (k === calSel ? ' sel' : '') + (ev.length ? ' has' : '');
-      cells += '<button class="' + cls + '" data-d="' + k + '"><span>' + dd + '</span><i>' + ev.slice(0, 3).map(function (e) { return '<em style="background:' + typeOf(e.type)[2] + '"></em>'; }).join('') + '</i></button>';
+      cells += '<button class="' + cls + '" data-d="' + k + '"><span>' + dd + '</span>' + ev.slice(0, 2).map(function (e) {
+        return '<em class="chip" style="background:' + typeOf(e.type)[2] + '">' + esc(SHORT[e.type] || e.title.split(' ')[0]) + '</em>';
+      }).join('') + (ev.length > 2 ? '<em class="more">+' + (ev.length - 2) + '</em>' : '') + '</button>';
     }
     var list = calSel ? (byDay[calSel] || []) : upcoming();
     var editing = calEdit ? P.cal.filter(function (e) { return e.id === calEdit; })[0] : null;
