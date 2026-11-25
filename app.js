@@ -32,6 +32,15 @@
   function setDone(id, v) { if (v) S.done[id] = 1; else delete S.done[id]; save(); }
   function isStar(id) { return !!S.star[id]; }
   function setStar(id, v) { if (v) S.star[id] = Date.now(); else delete S.star[id]; save(); }
+  /* Notizen: je Karte eine Liste von Notizzetteln mit Datum; auf die Karte nur, wenn gewünscht */
+  function notesOf(id) {
+    var n = S.notes[id];
+    if (!n) return [];
+    if (typeof n === 'string') { n = [{ id: 'n' + Date.now(), text: n, created: Date.now(), onCard: false }]; S.notes[id] = n; }
+    return n;
+  }
+  function notesText(id, cardOnly) { return notesOf(id).filter(function (x) { return x.text && (!cardOnly || x.onCard); }).map(function (x) { return x.text; }).join(' · '); }
+  function fmtDate(t) { var d = new Date(t); function z(v) { return (v < 10 ? '0' : '') + v; } return z(d.getDate()) + '.' + z(d.getMonth() + 1) + '.' + d.getFullYear() + ', ' + z(d.getHours()) + ':' + z(d.getMinutes()) + ' Uhr'; }
 
   /* ---------- Hilfen ---------- */
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -75,7 +84,8 @@
     if (c.bullets) h += '<ul>' + c.bullets.map(function (x) { return '<li>' + md(x) + '</li>'; }).join('') + '</ul>';
     if (c.rules) h += rulesHtml(c.rules);
     if (c.calc) h += calcHtml(c.calc);
-    if (!e.__noNote && S.notes[e.sub.id]) h += '<div class="k-note"><b>Notiz:</b> ' + esc(S.notes[e.sub.id]) + '</div>';
+    var cn = e.__noNote ? '' : notesText(e.sub.id, true);
+    if (cn) h += '<div class="k-note"><b>Notiz:</b> ' + esc(cn) + '</div>';
     if (c.merke) h += '<div class="k-merk">' + md(/^merke/i.test(c.merke) ? c.merke : 'Merke: ' + c.merke) + '</div>';
     if (c.quelle) h += '<div class="k-foot">Quelle: ' + esc(c.quelle) + '</div>';
     return h;
@@ -235,7 +245,7 @@
       '<div class="essenz-label"><span>Essenz · Lernkarte</span><div class="cardtools">' + starBtnHtml(s.id) + markBtnHtml() +
       '<label class="done"><input type="checkbox" id="donebox"' + (isDone(s.id) ? ' checked' : '') + '> gelernt</label></div></div>' +
       cardHtml(e) +
-      '<div class="notebox"><label for="note">Meine Notiz</label><textarea id="note" rows="3" placeholder="z. B. was die Lehrkraft dazu gesagt hat …">' + esc(S.notes[s.id] || '') + '</textarea><small id="notesaved"></small></div>' +
+      '<section class="notebox" id="notebox"></section>' +
       '<div class="actions"><span class="muted" style="align-self:center">Karte drucken:</span><a class="btn" href="#/druckansicht?ids=' + esc(s.id) + '&m=a6">A6</a><a class="btn" href="#/druckansicht?ids=' + esc(s.id) + '&m=a7">A7 (Spielkarte)</a></div>' +
       '<p class="src">Quelle: ' + md(s.src) + '</p>' + reportHtml(subCtx) + '</article>' +
       '<div class="pager">' + (prev ? '<a href="#/s/' + esc(prev.sub.id) + '"><small>Zurück</small>' + md(prev.sub.title) + '</a>' : '<span style="flex:1"></span>') +
@@ -250,14 +260,49 @@
         refreshSide();
       });
     });
-    var nt;
-    $('#note').addEventListener('input', function (ev) {
-      clearTimeout(nt); var v = ev.target.value;
-      nt = setTimeout(function () {
-        if (v.trim()) S.notes[s.id] = v; else delete S.notes[s.id]; save(); $('#notesaved').textContent = 'gespeichert – steht auch auf der Karte';
-        var cd = main.querySelector('.card[data-card="' + s.id + '"]'); if (cd) cd.outerHTML = cardHtml(e);
-      }, 400);
-    });
+    function renderNotes(openNew) {
+      var list = notesOf(s.id), box = $('#notebox');
+      box.innerHTML = '<div class="nb-head"><h3>Meine Notizen</h3><button class="btn" id="nb-new" type="button">+ Neue Notiz</button></div>' +
+        (list.length || openNew ? '' : '<p class="muted nb-empty">Noch keine Notiz. Tippe auf „+ Neue Notiz“.</p>') +
+        list.map(function (n, i) {
+          return '<div class="nz" data-i="' + i + '"><div class="nz-date">' + fmtDate(n.created) + (n.edited ? ' · bearbeitet ' + fmtDate(n.edited) : '') + '</div>' +
+            '<textarea rows="3" aria-label="Notiz vom ' + fmtDate(n.created) + '">' + esc(n.text) + '</textarea>' +
+            '<div class="nz-bar"><label class="nz-card"><input type="checkbox"' + (n.onCard ? ' checked' : '') + '> auf die Karte</label>' +
+            '<span class="nz-ok" aria-live="polite"></span><button class="btn nz-del" type="button">Löschen</button><button class="btn primary nz-save" type="button">Speichern</button></div></div>';
+        }).join('') +
+        (openNew ? '<div class="nz nz-newbox"><div class="nz-date">Neu · ' + fmtDate(Date.now()) + '</div><textarea rows="3" id="nb-text" placeholder="z. B. was die Lehrkraft dazu gesagt hat …"></textarea>' +
+          '<div class="nz-bar"><label class="nz-card"><input type="checkbox" id="nb-card"> auf die Karte</label><button class="btn" id="nb-cancel" type="button">Abbrechen</button><button class="btn primary" id="nb-save" type="button">Speichern</button></div></div>' : '');
+      function refreshCard() { var cd = main.querySelector('.card[data-card="' + s.id + '"]'); if (cd) { cd.outerHTML = cardHtml(e); applyCardMarks(main.querySelector('article.sub')); } }
+      $('#nb-new').addEventListener('click', function () { renderNotes(true); var t = $('#nb-text'); if (t) t.focus(); });
+      if (openNew) {
+        $('#nb-cancel').addEventListener('click', function () { renderNotes(false); });
+        $('#nb-save').addEventListener('click', function () {
+          var t = $('#nb-text').value.trim(); if (!t) { $('#nb-text').focus(); return; }
+          var arr = notesOf(s.id).slice(); arr.push({ id: 'n' + Date.now(), text: t, created: Date.now(), onCard: $('#nb-card').checked });
+          S.notes[s.id] = arr; save(); renderNotes(false); refreshCard();
+        });
+      }
+      box.querySelectorAll('.nz[data-i]').forEach(function (el) {
+        var i = +el.dataset.i, ta = el.querySelector('textarea'), cb = el.querySelector('.nz-card input'), ok = el.querySelector('.nz-ok');
+        ta.addEventListener('input', function () { ok.textContent = 'nicht gespeichert'; ok.className = 'nz-ok warn-t'; });
+        cb.addEventListener('change', function () { ok.textContent = 'nicht gespeichert'; ok.className = 'nz-ok warn-t'; });
+        el.querySelector('.nz-save').addEventListener('click', function () {
+          var arr = notesOf(s.id), n = arr[i]; if (!n) return;
+          var t = ta.value.trim();
+          if (!t) { if (!confirm('Die Notiz ist leer. Löschen?')) return; arr.splice(i, 1); }
+          else { if (t !== n.text) n.edited = Date.now(); n.text = t; n.onCard = cb.checked; }
+          if (arr.length) S.notes[s.id] = arr; else delete S.notes[s.id];
+          save(); renderNotes(false); refreshCard();
+          var again = box.querySelector('.nz[data-i="' + i + '"] .nz-ok'); if (again) { again.textContent = '✓ gespeichert'; again.className = 'nz-ok'; }
+        });
+        el.querySelector('.nz-del').addEventListener('click', function () {
+          if (!confirm('Diese Notiz löschen?')) return;
+          var arr = notesOf(s.id); arr.splice(i, 1); if (arr.length) S.notes[s.id] = arr; else delete S.notes[s.id];
+          save(); renderNotes(false); refreshCard();
+        });
+      });
+    }
+    renderNotes(false);
     bindReport(subCtx);
     document.body.classList.remove('marking'); setupMarker(s.id);
     var cur = document.querySelector('.side [aria-current="page"]'); if (cur) cur.scrollIntoView({ block: 'center' });
@@ -265,7 +310,7 @@
 
 
   /* ---------- Fehler melden (ohne Server: per WhatsApp oder E-Mail) ---------- */
-  var APP_VERSION = 'v16';
+  var APP_VERSION = 'v20';
   function reportHtml(ctx) {
     return '<details class="report"><summary>Fehler gefunden?</summary><div class="report-in">' +
       '<label for="rep-txt">Was stimmt nicht?</label><textarea id="rep-txt" rows="3" placeholder="z. B. Zahl falsch, Satz unklar, Paragraf stimmt nicht …"></textarea>' +
@@ -346,16 +391,16 @@
   function viewStars() {
     setNav('merken'); document.title = 'Merkzettel – Immo Kaufmann';
     var list = SUBS.filter(function (e) { return isStar(e.sub.id); });
-    var withNotes = SUBS.filter(function (e) { return S.notes[e.sub.id] && !isStar(e.sub.id); });
+    var withNotes = SUBS.filter(function (e) { return notesText(e.sub.id) && !isStar(e.sub.id); });
     main.innerHTML = '<div class="content"><div class="crumb"><a href="#/">Start</a> › Merkzettel</div><h1>Merkzettel</h1>' +
       '<p class="lead">' + (list.length ? list.length + (list.length === 1 ? ' Karte' : ' Karten') + ' zum Nochmal-Ansehen.' : 'Noch leer. Tippe bei einer Karte auf „☆ Merken“, dann steht sie hier.') + '</p>' +
       (list.length ? '<div class="actions" style="margin-bottom:12px"><a class="btn primary" href="#/abfragen?b=star">Merkzettel abfragen</a><a class="btn" href="#/druck?b=star">Merkzettel drucken</a></div>' : '') +
       '<div class="results">' + list.map(function (e) {
-        return '<div class="row">' + subLink(e, S.notes[e.sub.id] ? '<div class="rs">Notiz: ' + esc(S.notes[e.sub.id]).slice(0, 140) + '</div>' : '') +
+        return '<div class="row">' + subLink(e, notesText(e.sub.id) ? '<div class="rs">Notiz: ' + esc(notesText(e.sub.id).slice(0, 140)) + '</div>' : '') +
           '<button class="iconbtn unstar" data-id="' + esc(e.sub.id) + '" aria-label="Vom Merkzettel nehmen">✕</button></div>';
       }).join('') + '</div>' +
       (withNotes.length ? '<div class="section-title">Karten mit Notiz</div><div class="results">' + withNotes.map(function (e) {
-        return subLink(e, '<div class="rs">Notiz: ' + esc(S.notes[e.sub.id]).slice(0, 140) + '</div>');
+        return subLink(e, '<div class="rs">Notiz: ' + esc(notesText(e.sub.id).slice(0, 140)) + '</div>');
       }).join('') + '</div>' : '') + '</div>';
     main.querySelectorAll('.unstar').forEach(function (b) { b.addEventListener('click', function () { setStar(b.dataset.id, false); viewStars(); }); });
   }
@@ -580,7 +625,7 @@
       if (b.calc) { parts.push(b.calc.title || ''); b.calc.rows.forEach(function (r) { parts.push(r.label); }); }
     });
     var c = s.card || {}; parts.push(c.title || '', c.merke || ''); parts = parts.concat(c.bullets || []);
-    if (S.notes[s.id]) parts.push(S.notes[s.id]);
+    if (S.notes[s.id]) parts.push(notesText(s.id));
     var text = plain(parts.join(' \n '));
     return { e: e, text: text, low: norm(text) };
   });
@@ -635,7 +680,7 @@
     var m = FORMATS.some(function (f) { return f[0] === params.m; }) ? params.m : 'a6';
     var list = params.ids ? params.ids.split(',').map(function (id) { return BYID[id]; }).filter(function (e) { return e && e.type === 'sub'; })
       : scopeList(params.b || 'all').filter(function (e) { return !params.only || !isDone(e.sub.id); });
-    var noNote = params.nn === '1', hasNotes = list.some(function (e) { return S.notes[e.sub.id]; });
+    var noNote = params.nn === '1', hasNotes = list.some(function (e) { return notesText(e.sub.id, true); });
     var base = '#/druckansicht?' + (params.ids ? 'ids=' + params.ids : 'b=' + (params.b || 'all') + (params.only ? '&only=1' : ''));
     var standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
     var per = m === 'a4' ? 4 : m === 'a7x8' ? 8 : 1;

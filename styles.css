@@ -413,3 +413,21 @@ body.marking main{padding-bottom:110px}
   box-shadow:0 4px 14px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center}
 body.marking .totop{bottom:calc(80px + var(--safe-bottom))}
 @media print{ .totop{display:none !important} }
+
+/* ---------- Notizzettel ---------- */
+.notebox{margin:18px 0 0}
+.nb-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 8px}
+.nb-head h3{margin:0 !important;font-size:15px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.nb-empty{font-size:15px;margin:0 0 8px}
+.nz{background:#fff8c6;color:#3d3500;border-radius:4px 4px 10px 4px;padding:8px 10px 10px;margin:0 0 10px;box-shadow:0 2px 6px rgba(0,0,0,.12);border-top:3px solid #f2d64b}
+.nz-date{font-size:12px;font-weight:700;color:#7a6a00;margin:0 0 4px}
+.nz textarea{width:100%;font:inherit;font-size:16px;border:1px solid #e6d78a;border-radius:6px;padding:6px 8px;background:#fffdf0;color:#2b2600;resize:vertical}
+.nz-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
+.nz-card{display:flex;align-items:center;gap:6px;font-size:14px;margin-right:auto;min-height:40px;cursor:pointer}
+.nz-card input{width:20px;height:20px;accent-color:#b08f00}
+.nz .btn{min-height:38px;font-size:14px;padding:4px 12px;background:#fffdf0;color:#3d3500;border-color:#e6d78a}
+.nz .btn.primary{background:#3d3500;border-color:#3d3500;color:#fff8c6}
+.nz-ok{font-size:13px;color:#2f7a2f;font-weight:700}
+.nz-ok.warn-t{color:#a15c00}
+.nz-newbox{border-top-color:var(--accent)}
+.nz-ok:empty{display:none}
