@@ -130,7 +130,7 @@
       '<h1>Immobilienkauffrau · Ausbildung</h1>' +
       '<p class="lead">' + all + ' Lernkarten · ' + d + ' gelernt · ' + stars + ' auf dem Merkzettel.</p>' +
       '<div class="quick"><a class="btn primary" href="#/abfragen">Abfragen' + (due ? ' (' + due + ' fällig)' : '') + '</a>' +
-      '<a class="btn" href="#/pruefung">Prüfungsfragen (' + FRAGEN.length + ')</a><a class="btn" href="#/merken">Merkzettel (' + stars + ')</a><a class="btn" href="#/az">Fachbegriffe A–Z</a></div>';
+      '<a class="btn" href="#/pruefung">Prüfungsfragen (' + FRAGEN.length + ')</a><button class="btn" id="sharebtn">App teilen</button><a class="btn" href="#/merken">Merkzettel (' + stars + ')</a><a class="btn" href="#/az">Fachbegriffe A–Z</a></div>';
     years.forEach(function (y) {
       var lfs = AREAS.filter(function (a) { return a.year === y && a.kind === 'lf'; }), fa = AREAS.filter(function (a) { return a.year === y && a.kind !== 'lf'; });
       html += '<h2 class="year">' + y + '. Ausbildungsjahr</h2>';
@@ -142,6 +142,7 @@
       '<div class="section-title">Deine Daten</div><div class="hint">Haken, Merkzettel, Notizen und Karteikasten bleiben nur auf diesem Gerät. Für ein neues Handy oder als Sicherung:' +
       '<div class="actions"><button class="btn" id="exp">Sicherung speichern</button><label class="btn" for="imp">Sicherung laden</label><input type="file" id="imp" accept=".json,application/json" hidden></div></div></div>';
     main.innerHTML = html;
+    $('#sharebtn').addEventListener('click', shareApp);
     $('#exp').addEventListener('click', function () {
       var blob = new Blob([JSON.stringify({ app: 'immo-kaufmann', v: 2, saved: new Date().toISOString(), data: S }, null, 1)], { type: 'application/json' });
       var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'immo-kaufmann-sicherung.json';
@@ -157,6 +158,12 @@
     });
   }
 
+  var APP_URL = 'https://herzogwebdesign.github.io/immo-kaufmann/';
+  var SHARE_TEXT = 'Immo Kaufmann – Lernkarten, Prüfungsfragen und Fachbegriffe fürs 1. Ausbildungsjahr Immobilienkaufleute. Kostenlos, ohne Anmeldung: ';
+  function shareApp() {
+    if (navigator.share) { navigator.share({ title: 'Immo Kaufmann', text: SHARE_TEXT, url: APP_URL }).catch(function () {}); return; }
+    window.open('https://wa.me/?text=' + encodeURIComponent(SHARE_TEXT + APP_URL), '_blank', 'noopener');
+  }
   function viewArea(id) {
     var a = BYID[id] && BYID[id].area; if (!a) return viewHome();
     setNav('start');
