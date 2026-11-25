@@ -127,8 +127,10 @@
   function sqLabel(a) { return a.sq || SQ[a.id] || [a.kind === 'lf' ? 'LF ' + a.nr : plain(a.title).slice(0, 2).toUpperCase(), plain(a.short || a.title).replace(/^LF \d+ · /, '')]; }
   function titleLines(a) { return a.lines || TBREAK[a.id] || [plain(a.title)]; }
   var THEMES = ['auto', 'light', 'dark'], THEME_LABEL = { auto: '◐', light: '☀', dark: '☾' }, THEME_NAME = { auto: 'Hell/Dunkel: automatisch', light: 'Hell', dark: 'Dunkel' };
+  var ACCENTS = [['gruen', '#1f6f5c', 'Grün'], ['blau', '#1f5fa8', 'Blau'], ['lila', '#6b3fa0', 'Lila'], ['beere', '#a8324a', 'Beere'], ['orange', '#a5520e', 'Orange']];
   function applyTheme() {
-    var t = getPref('theme', 'auto'), r = document.documentElement;
+    var t = getPref('theme', 'auto'), r = document.documentElement, ac = getPref('accent', 'gruen');
+    if (ac === 'gruen') r.removeAttribute('data-accent'); else r.setAttribute('data-accent', ac);
     if (t === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t);
     var b = $('#themebtn'); if (b) { b.textContent = THEME_LABEL[t]; b.title = THEME_NAME[t]; b.setAttribute('aria-label', THEME_NAME[t]); }
     var mc = document.querySelector('meta[name=theme-color]'); if (mc) mc.content = (t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)) ? '#1f252c' : '#1f6f5c';
@@ -163,6 +165,9 @@
       '<p class="lead">' + all + ' Lernkarten · ' + d + ' gelernt · ' + stars + ' auf dem Merkzettel.</p>' +
       '<div class="quickgrid">' + qb('#/abfragen', 'Abfragen', due + ' fällig', 'primary') + qb('#/pruefung', 'Wissen prüfen', FRAGEN.length + ' Fragen') +
       qb('#/merken', 'Merkzettel', stars + ' Karten') + qb('#/az', 'A–Z', GLOSSAR.length + ' Begriffe') + qb('', 'Teilen', 'WhatsApp & Co.', '', 'sharebtn') + '</div>' +
+      '<div class="colors" role="group" aria-label="Farbe"><span>Farbe:</span>' + ACCENTS.map(function (c) {
+        return '<button data-accent="' + c[0] + '" style="background:' + c[1] + '" aria-label="' + c[2] + '" title="' + c[2] + '"' + (getPref('accent', 'gruen') === c[0] ? ' class="on" aria-pressed="true"' : '') + '></button>';
+      }).join('') + '</div>' +
       '<div class="viewswitch" role="group" aria-label="Ansicht"><span>Ansicht:</span><button data-mode="list"' + (gridOn ? '' : ' class="on" aria-pressed="true"') + '>Liste</button><button data-mode="grid"' + (gridOn ? ' class="on" aria-pressed="true"' : '') + '>Kacheln</button></div>';
     years.forEach(function (y) {
       var lfs = AREAS.filter(function (a) { return a.year === y && a.kind === 'lf'; }), fa = AREAS.filter(function (a) { return a.year === y && a.kind !== 'lf'; });
@@ -176,6 +181,7 @@
       '<div class="actions"><button class="btn" id="exp">Sicherung speichern</button><label class="btn" for="imp">Sicherung laden</label><input type="file" id="imp" accept=".json,application/json" hidden></div></div></div>';
     main.innerHTML = html;
     $('#sharebtn').addEventListener('click', shareApp);
+    main.querySelectorAll('.colors button').forEach(function (b) { b.addEventListener('click', function () { setPref('accent', b.dataset.accent); applyTheme(); viewHome(); }); });
     main.querySelectorAll('.viewswitch button').forEach(function (b) { b.addEventListener('click', function () { setPref('tiles', b.dataset.mode); viewHome(); }); });
     $('#exp').addEventListener('click', function () {
       var blob = new Blob([JSON.stringify({ app: 'immo-kaufmann', v: 2, saved: new Date().toISOString(), data: S }, null, 1)], { type: 'application/json' });
@@ -252,7 +258,7 @@
 
 
   /* ---------- Fehler melden (ohne Server: per WhatsApp oder E-Mail) ---------- */
-  var APP_VERSION = 'v11';
+  var APP_VERSION = 'v12';
   function reportHtml(ctx) {
     return '<details class="report"><summary>Fehler gefunden?</summary><div class="report-in">' +
       '<label for="rep-txt">Was stimmt nicht?</label><textarea id="rep-txt" rows="3" placeholder="z. B. Zahl falsch, Satz unklar, Paragraf stimmt nicht …"></textarea>' +
