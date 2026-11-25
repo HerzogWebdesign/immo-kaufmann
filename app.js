@@ -510,7 +510,7 @@
         return '<li><label><input type="checkbox" class="selc" value="' + esc(e.sub.id) + '"><span><small>' + e.num + ' · Stufe ' + bx.f + '</small>' + md(e.sub.title) + '</span></label><span class="fbadge">' + esc(sqLabel(e.area)[0]) + '</span></li>';
       }).join('') + '</ul>' : '<p class="hint">Hier liegen keine Karten.</p>') +
       '<div class="selactions"><button class="btn primary" id="selquiz" disabled>Auswahl abfragen</button>' +
-      '<span class="moveto"><select id="seltarget" class="sel" aria-label="Zielstufe">' + [1, 2, 3, 4, 5].map(function (n) { return '<option value="' + n + '">auf Stufe ' + n + '</option>'; }).join('') + '</select>' +
+      '<span class="moveto"><select id="seltarget" class="sel" aria-label="Zielstufe">' + [1, 2, 3, 4, 5].filter(function (n) { return n !== f; }).map(function (n) { return '<option value="' + n + '"' + (n === Math.min(5, f + 1) && f ? ' selected' : '') + '>auf Stufe ' + n + '</option>'; }).join('') + '</select>' +
       '<button class="btn" id="selmove" disabled>Verschieben</button></span></div></div>';
     function picked() { return Array.prototype.map.call(main.querySelectorAll('.selc:checked'), function (c) { return c.value; }); }
     function upd() { var n = picked().length; $('#selcount').textContent = n + ' ausgewählt'; $('#selquiz').disabled = !n; $('#selmove').disabled = !n; }
