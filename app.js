@@ -161,7 +161,7 @@
     var html = '<div class="content" style="max-width:none">' +
       '<h1 class="home-h1">Immobilienkaufmann/-frau<span>' + (years.length === 1 ? years[0] + '. Ausbildungsjahr' : 'Ausbildung') + '</span></h1>' +
       '<p class="lead">' + all + ' Lernkarten · ' + d + ' gelernt · ' + stars + ' auf dem Merkzettel.</p>' +
-      '<div class="quickgrid">' + qb('#/abfragen', 'Abfragen', due + ' fällig', 'primary') + qb('#/pruefung', 'Prüfung', FRAGEN.length + ' Fragen') +
+      '<div class="quickgrid">' + qb('#/abfragen', 'Abfragen', due + ' fällig', 'primary') + qb('#/pruefung', 'Wissen prüfen', FRAGEN.length + ' Fragen') +
       qb('#/merken', 'Merkzettel', stars + ' Karten') + qb('#/az', 'A–Z', GLOSSAR.length + ' Begriffe') + qb('', 'Teilen', 'WhatsApp & Co.', '', 'sharebtn') + '</div>' +
       '<div class="viewswitch" role="group" aria-label="Ansicht"><span>Ansicht:</span><button data-mode="list"' + (gridOn ? '' : ' class="on" aria-pressed="true"') + '>Liste</button><button data-mode="grid"' + (gridOn ? ' class="on" aria-pressed="true"' : '') + '>Kacheln</button></div>';
     years.forEach(function (y) {
@@ -193,7 +193,7 @@
   }
 
   var APP_URL = 'https://herzogwebdesign.github.io/immo-kaufmann/';
-  var SHARE_TEXT = 'Immo Kaufmann – Lernkarten, Prüfungsfragen und Fachbegriffe fürs 1. Ausbildungsjahr Immobilienkaufleute. Kostenlos, ohne Anmeldung: ';
+  var SHARE_TEXT = 'Immo Kaufmann – Lernkarten, Übungsfragen und Fachbegriffe fürs 1. Ausbildungsjahr Immobilienkaufleute. Kostenlos, ohne Anmeldung: ';
   function shareApp() {
     if (navigator.share) { navigator.share({ title: 'Immo Kaufmann', text: SHARE_TEXT, url: APP_URL }).catch(function () {}); return; }
     window.open('https://wa.me/?text=' + encodeURIComponent(SHARE_TEXT + APP_URL), '_blank', 'noopener');
@@ -208,7 +208,7 @@
       '<h1>' + titleLines(a).map(esc).join('<br>') + '</h1>' +
       '<p class="lead">' + md(a.intro) + '<br><small>' + esc(a.hours || '') + (a.hours ? ' · ' : '') + st.d + ' von ' + st.n + ' gelernt</small></p>' +
       topicsHtml(a) +
-      '<div class="actions"><a class="btn" href="#/abfragen?b=' + esc(a.id) + '">Diesen Bereich abfragen</a><a class="btn" href="#/pruefung?b=' + esc(a.id) + '">Prüfungsfragen</a><a class="btn" href="#/druck?b=' + esc(a.id) + '">Karten drucken</a></div>' +
+      '<div class="actions"><a class="btn" href="#/abfragen?b=' + esc(a.id) + '">Diesen Bereich abfragen</a><a class="btn" href="#/pruefung?b=' + esc(a.id) + '">Wissen prüfen</a><a class="btn" href="#/druck?b=' + esc(a.id) + '">Karten drucken</a></div>' +
       '<p class="src">Quelle: ' + esc(a.source) + '</p></div>';
   }
 
@@ -376,12 +376,12 @@
   function note100(p) { return p >= 92 ? 'sehr gut' : p >= 81 ? 'gut' : p >= 67 ? 'befriedigend' : p >= 50 ? 'ausreichend' : p >= 30 ? 'mangelhaft' : 'ungenügend'; }
   function parseNum(v) { v = String(v).replace(/\s|€|%|m²/g, ''); if (/,/.test(v)) v = v.replace(/\./g, '').replace(',', '.'); return parseFloat(v); }
   function viewExam(params) {
-    setNav('pruefung'); document.title = 'Prüfungsfragen – Immo Kaufmann';
+    setNav('pruefung'); document.title = 'Prüf dein Wissen – Immo Kaufmann';
     var b = params.b || 'all';
     if (!params.go) {
       exam = null;
       var pool = qScope(b), wrong = pool.filter(function (q) { return S.qs[q.id] === 0; }).length, right = pool.filter(function (q) { return S.qs[q.id] === 1; }).length;
-      main.innerHTML = '<div class="content"><div class="crumb"><a href="#/">Start</a> › Prüfungsfragen</div><h1>Prüfungsfragen</h1>' +
+      main.innerHTML = '<div class="content"><div class="crumb"><a href="#/">Start</a> › Wissen prüfen</div><h1>Prüf dein Wissen</h1>' +
         '<p class="lead">Übungsfragen im Stil der IHK-Prüfung: Ankreuzen oder Rechnen. Selbst erstellt – keine Original-Prüfungsaufgaben. Falsch beantwortete Fragen legen die Karte auf deinen Merkzettel.</p>' +
         '<fieldset><legend>Welche Fragen?</legend><select id="scope" class="sel"><option value="all">Alle Bereiche</option><option value="star"' + (b === 'star' ? ' selected' : '') + '>Merkzettel</option>' +
         AREAS.map(function (a) { return '<option value="' + a.id + '"' + (b === a.id ? ' selected' : '') + '>' + esc(areaLabel(a) + ': ' + plain(a.title)) + '</option>'; }).join('') + '</select></fieldset>' +
@@ -411,7 +411,7 @@
       ? '<div class="opts">' + order.map(function (i, k) { return '<button class="optbtn" data-i="' + i + '"><span class="ol">' + 'abcde'.charAt(k) + '</span>' + md(q.options[i]) + '</button>'; }).join('') + '</div>' +
         (multi ? '<p class="muted">Zwei Antworten sind richtig.</p>' : '') + '<div class="actions"><button class="btn primary" id="check"' + (multi ? '' : ' hidden') + '>Prüfen</button></div>'
       : '<div class="numin"><input id="num" inputmode="decimal" autocomplete="off" placeholder="Deine Lösung"><span>' + esc(q.unit || '') + '</span></div><div class="actions"><button class="btn primary" id="check">Prüfen</button></div>';
-    main.innerHTML = '<div class="content quiz"><div class="crumb"><a href="#/pruefung?b=' + exam.b + '">Prüfungsfragen</a> › Frage ' + (exam.i + 1) + ' von ' + exam.list.length + '</div>' +
+    main.innerHTML = '<div class="content quiz"><div class="crumb"><a href="#/pruefung?b=' + exam.b + '">Wissen prüfen</a> › Frage ' + (exam.i + 1) + ' von ' + exam.list.length + '</div>' +
       '<div class="progress"><i style="width:' + Math.round(exam.i * 100 / exam.list.length) + '%"></i></div>' +
       '<article class="sub qbox"><div class="rp">' + areaLabel(e.area) + ' · ' + md(e.sub.title) + '</div><h2 class="qq">' + md(q.q) + '</h2>' + body + '<div id="fb"></div></article></div>';
     var picked = [];
