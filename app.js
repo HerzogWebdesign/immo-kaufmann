@@ -430,12 +430,12 @@
     setNav('abfragen'); document.title = 'Abfragen – Immo Kaufmann';
     var b = params.b || 'all';
     if (!params.go) { quiz = null; return quizStart(b); }
-    if (!quiz || quiz.b !== b || params.sel) {
+    if (!quiz || quiz.b !== b || params.sel || (params.n && params.n !== quiz.n)) {
       var list = scopeList(b), due = dueList(list);
       var pool = params.sel ? (window.__immoSel || []).map(function (id) { return BYID[id]; }).filter(Boolean) : params.all ? list : due;
       if (params.sel) { window.__immoSel = null; history.replaceState(null, '', '#/abfragen?b=' + b + '&go=1&all=1'); }
       pool = pool.slice().sort(function (x, y) { return boxOf(x.sub.id).f - boxOf(y.sub.id).f || Math.random() - 0.5; });
-      quiz = { b: b, queue: pool.map(function (e) { return e.sub.id; }), right: 0, again: 0, total: pool.length, shown: false };
+      quiz = { b: b, n: params.n, sel: !!params.sel, queue: pool.map(function (e) { return e.sub.id; }), right: 0, again: 0, total: pool.length, shown: false };
     }
     quizCard();
   }
@@ -458,8 +458,11 @@
   }
   function quizCard() {
     if (!quiz.queue.length) {
-      main.innerHTML = '<div class="content"><h1>Fertig!</h1><p class="lead">' + quiz.right + '× gewusst, ' + quiz.again + '× nochmal.</p>' +
-        '<div class="actions"><a class="btn primary" href="#/abfragen?b=' + quiz.b + '">Zum Karteikasten</a><a class="btn" href="#/merken">Merkzettel</a></div></div>';
+      var dueN = dueList(scopeList(quiz.b)).length, wasSel = !!quiz.sel;
+      main.innerHTML = '<div class="content"><h1>' + (wasSel ? 'Auswahl geschafft!' : 'Fertig!') + '</h1><p class="lead">' + quiz.right + '× gewusst, ' + quiz.again + '× nochmal.</p>' +
+        '<div class="actions">' + (dueN ? '<a class="btn primary" href="#/abfragen?b=' + quiz.b + '&go=1&n=' + Date.now() + '">Nächste Karten abfragen (' + dueN + ' fällig)</a>' : '') +
+        '<a class="btn' + (dueN ? '' : ' primary') + '" href="#/fach?b=' + quiz.b + '&f=0">Andere Karten auswählen</a>' +
+        '<a class="btn" href="#/abfragen?b=' + quiz.b + '">Zum Karteikasten</a></div></div>';
       quiz = null; return;
     }
     var e = BYID[quiz.queue[0]], bx = boxOf(e.sub.id), doneN = quiz.total - quiz.queue.length;
