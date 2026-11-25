@@ -559,8 +559,15 @@
   }
 
   /* ---------- Router ---------- */
+  var navDepth = 0;
+  function parentOf(h) {
+    var m = h.match(/^s\/(.+)$/); if (m && BYID[m[1]]) return '#/b/' + BYID[m[1]].area.id;
+    if (/^fach/.test(h)) return '#/abfragen';
+    return '#/';
+  }
   function route() {
     var h = location.hash.replace(/^#\/?/, ''), q = '', params = {};
+    var bb = $('#backbtn'), atHome = (h === '' || h === '/'); if (bb) bb.hidden = atHome; document.body.classList.toggle('has-back', !atHome);
     if (/^L-/.test(h)) return; // Sprungmarke im Lexikon
     var qi = h.indexOf('?'); if (qi >= 0) { q = h.slice(qi + 1); h = h.slice(0, qi); q.split('&').forEach(function (p) { var kv = p.split('='); params[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1] || '').replace(/\+/g, ' ')); }); }
     var p = h.split('/');
@@ -587,7 +594,11 @@
     t = setTimeout(function () { var target = '#/suche?q=' + encodeURIComponent(v); if (location.hash !== target) history.replaceState(null, '', target); route(); }, 150);
   });
   $('#searchform').addEventListener('submit', function (ev) { ev.preventDefault(); $('#q').blur(); });
-  window.addEventListener('hashchange', route);
+  window.addEventListener('hashchange', function () { navDepth++; route(); });
+  $('#backbtn').addEventListener('click', function () {
+    if (navDepth > 0) { navDepth -= 2; history.back(); }
+    else location.hash = parentOf(location.hash.replace(/^#\/?/, '').split('?')[0]);
+  });
   window.addEventListener('afterprint', function () { document.body.classList.remove('p-a4', 'p-a6', 'p-a7', 'p-a7x8'); });
   route();
 

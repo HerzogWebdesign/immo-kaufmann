@@ -319,3 +319,6 @@ a.boxf:hover{border-color:var(--accent)}
 #themebtn{font-size:18px}
 .pager a{min-width:0;overflow-wrap:anywhere;hyphens:auto;-webkit-hyphens:auto}
 .viewswitch{margin-bottom:2px}
+.backbtn{font-size:28px;line-height:1;padding:0 8px 4px}
+@media (max-width:420px){ .brand{font-size:16px} .bar-in{gap:6px} }
+@media (max-width:420px){ body.has-back .brand{display:none} }
