@@ -113,6 +113,27 @@
     document.querySelectorAll('nav.tabs a').forEach(function (a) { a.classList.toggle('on', a.dataset.nav === name); });
   }
 
+  /* ---------- Einstellungen (nur dieses Gerät) ---------- */
+  function getPref(k, d) { try { return localStorage.getItem('immo-pref-' + k) || d; } catch (e) { return d; } }
+  function setPref(k, v) { try { localStorage.setItem('immo-pref-' + k, v); } catch (e) {} }
+  function tileMode() { return getPref('tiles', 'list'); }
+  var TBREAK = {
+    lf1: ['Die Berufsausbildung', 'selbstständig mitgestalten'], lf2: ['Das Immobilienunternehmen', 'repräsentieren'],
+    lf3: ['Werteströme und Werte', 'erfassen und dokumentieren'], lf4: ['Wohnräume vermieten'], lf5: ['Wohnräume verwalten', 'und Bestände pflegen'],
+    en: ['Englisch', 'berufsbezogene Fremdsprache'], de: ['Deutsch', 'Kommunikation'], sk: ['Sozialkunde'], rp: ['Religion', 'oder Philosophie']
+  };
+  var SQ = { lf1: ['LF 1', 'Berufs­ausbildung mitgestalten'], lf2: ['LF 2', 'Unternehmen repräsentieren'], lf3: ['LF 3', 'Werteströme erfassen'], lf4: ['LF 4', 'Wohnräume vermieten'],
+    lf5: ['LF 5', 'Wohnräume verwalten'], en: ['EN', 'Englisch'], de: ['DE', 'Deutsch'], sk: ['SK', 'Sozialkunde'], rp: ['RP', 'Religion / Philosophie'] };
+  function sqLabel(a) { return a.sq || SQ[a.id] || [a.kind === 'lf' ? 'LF ' + a.nr : plain(a.title).slice(0, 2).toUpperCase(), plain(a.short || a.title).replace(/^LF \d+ · /, '')]; }
+  function titleLines(a) { return a.lines || TBREAK[a.id] || [plain(a.title)]; }
+  var THEMES = ['auto', 'light', 'dark'], THEME_LABEL = { auto: '◐', light: '☀', dark: '☾' }, THEME_NAME = { auto: 'Hell/Dunkel: automatisch', light: 'Hell', dark: 'Dunkel' };
+  function applyTheme() {
+    var t = getPref('theme', 'auto'), r = document.documentElement;
+    if (t === 'auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t);
+    var b = $('#themebtn'); if (b) { b.textContent = THEME_LABEL[t]; b.title = THEME_NAME[t]; b.setAttribute('aria-label', THEME_NAME[t]); }
+    var mc = document.querySelector('meta[name=theme-color]'); if (mc) mc.content = (t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches)) ? '#1f252c' : '#1f6f5c';
+  }
+
   /* ---------- Startseite ---------- */
   function viewHome() {
     setNav('start');
@@ -121,21 +142,33 @@
     var due = dueList(SUBS).length;
     var tile = function (a) {
       var st = areaStats(a), pct = st.n ? Math.round(st.d * 100 / st.n) : 0;
-      return '<a class="tile" href="#/b/' + esc(a.id) + '"><div class="nr">' + areaLabel(a) + '</div><div class="t">' + md(a.title) + '</div>' +
+      if (tileMode() === 'grid') {
+        var L = sqLabel(a);
+        return '<a class="sq" href="#/b/' + esc(a.id) + '" title="' + esc(plain(a.title)) + '"><div class="sq-nr">' + esc(L[0]) + '</div>' +
+          '<div class="sq-t">' + esc(L[1]) + '</div><div class="sq-m">' + st.d + ' / ' + st.n + ' gelernt</div>' +
+          '<div class="progress"><i style="width:' + pct + '%"></i></div></a>';
+      }
+      return '<a class="tile" href="#/b/' + esc(a.id) + '"><div class="nr">' + areaLabel(a) + '</div><div class="t">' + titleLines(a).map(esc).join('<br>') + '</div>' +
         '<div class="meta">' + a.topics.length + ' Themen · ' + st.n + ' Karten · ' + st.d + ' gelernt</div>' +
         '<div class="progress"><i style="width:' + pct + '%"></i></div></a>';
     };
     var years = [1, 2, 3].filter(function (y) { return AREAS.some(function (a) { return a.year === y; }); });
+    var qb = function (href, label, num, cls, id) {
+      return (href ? '<a class="qbtn' + (cls ? ' ' + cls : '') + '" href="' + href + '">' : '<button class="qbtn" id="' + id + '">') +
+        '<b>' + label + '</b><small>' + num + '</small>' + (href ? '</a>' : '</button>');
+    };
+    var gridOn = tileMode() === 'grid';
     var html = '<div class="content" style="max-width:none">' +
-      '<h1>Immobilienkauffrau · Ausbildung</h1>' +
+      '<h1 class="home-h1">Immobilienkaufmann/-frau<span>Ausbildung</span></h1>' +
       '<p class="lead">' + all + ' Lernkarten · ' + d + ' gelernt · ' + stars + ' auf dem Merkzettel.</p>' +
-      '<div class="quick"><a class="btn primary" href="#/abfragen">Abfragen' + (due ? ' (' + due + ' fällig)' : '') + '</a>' +
-      '<a class="btn" href="#/pruefung">Prüfungsfragen (' + FRAGEN.length + ')</a><button class="btn" id="sharebtn">App teilen</button><a class="btn" href="#/merken">Merkzettel (' + stars + ')</a><a class="btn" href="#/az">Fachbegriffe A–Z</a></div>';
+      '<div class="quickgrid">' + qb('#/abfragen', 'Abfragen', due + ' fällig', 'primary') + qb('#/pruefung', 'Prüfung', FRAGEN.length + ' Fragen') +
+      qb('#/merken', 'Merkzettel', stars + ' Karten') + qb('#/az', 'A–Z', GLOSSAR.length + ' Begriffe') + qb('', 'Teilen', 'WhatsApp & Co.', '', 'sharebtn') + '</div>' +
+      '<div class="viewswitch" role="group" aria-label="Ansicht"><span>Ansicht:</span><button data-mode="list"' + (gridOn ? '' : ' class="on" aria-pressed="true"') + '>Liste</button><button data-mode="grid"' + (gridOn ? ' class="on" aria-pressed="true"' : '') + '>Kacheln</button></div>';
     years.forEach(function (y) {
       var lfs = AREAS.filter(function (a) { return a.year === y && a.kind === 'lf'; }), fa = AREAS.filter(function (a) { return a.year === y && a.kind !== 'lf'; });
       html += '<h2 class="year">' + y + '. Ausbildungsjahr</h2>';
-      if (lfs.length) html += '<div class="section-title">Lernfelder</div><div class="tiles">' + lfs.map(tile).join('') + '</div>';
-      if (fa.length) html += '<div class="section-title">Weitere Fächer</div><div class="tiles">' + fa.map(tile).join('') + '</div>';
+      if (lfs.length) html += '<div class="section-title">Lernfelder</div><div class="' + (gridOn ? 'sqs' : 'tiles') + '">' + lfs.map(tile).join('') + '</div>';
+      if (fa.length) html += '<div class="section-title">Weitere Fächer</div><div class="' + (gridOn ? 'sqs' : 'tiles') + '">' + fa.map(tile).join('') + '</div>';
       if (y === 1) html += '<div class="section-title">Sport</div><div class="hint">Sport steht auch auf dem Stundenplan (laut Stundentafel MV). Dafür gibt es keine Lernkarten – er wird praktisch bewertet.</div>';
     });
     html += '<div class="section-title">Gut zu wissen</div><div class="hint">Grundlage: KMK-Rahmenlehrplan Immobilienkaufmann/-frau (2006), Ausbildungsverordnung (2006) und Stundentafel der Berufsschulverordnung MV. Deine Schule kann Reihenfolge und Themen anders verteilen – Stellen mit ⚠ zeigen das.</div>' +
@@ -143,6 +176,7 @@
       '<div class="actions"><button class="btn" id="exp">Sicherung speichern</button><label class="btn" for="imp">Sicherung laden</label><input type="file" id="imp" accept=".json,application/json" hidden></div></div></div>';
     main.innerHTML = html;
     $('#sharebtn').addEventListener('click', shareApp);
+    main.querySelectorAll('.viewswitch button').forEach(function (b) { b.addEventListener('click', function () { setPref('tiles', b.dataset.mode); viewHome(); }); });
     $('#exp').addEventListener('click', function () {
       var blob = new Blob([JSON.stringify({ app: 'immo-kaufmann', v: 2, saved: new Date().toISOString(), data: S }, null, 1)], { type: 'application/json' });
       var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'immo-kaufmann-sicherung.json';
@@ -171,7 +205,7 @@
     document.title = a.title + ' – Immo Kaufmann';
     main.innerHTML = '<div class="content">' +
       '<div class="crumb"><a href="#/">Start</a> › ' + a.year + '. Jahr · ' + areaLabel(a) + '</div>' +
-      '<h1>' + md(a.title) + '</h1>' +
+      '<h1>' + titleLines(a).map(esc).join('<br>') + '</h1>' +
       '<p class="lead">' + md(a.intro) + '<br><small>' + esc(a.hours || '') + (a.hours ? ' · ' : '') + st.d + ' von ' + st.n + ' gelernt</small></p>' +
       topicsHtml(a) +
       '<div class="actions"><a class="btn" href="#/abfragen?b=' + esc(a.id) + '">Diesen Bereich abfragen</a><a class="btn" href="#/pruefung?b=' + esc(a.id) + '">Prüfungsfragen</a><a class="btn" href="#/druck?b=' + esc(a.id) + '">Karten drucken</a></div>' +
@@ -246,9 +280,10 @@
     setNav('abfragen'); document.title = 'Abfragen – Immo Kaufmann';
     var b = params.b || 'all';
     if (!params.go) { quiz = null; return quizStart(b); }
-    if (!quiz || quiz.b !== b) {
+    if (!quiz || quiz.b !== b || params.sel) {
       var list = scopeList(b), due = dueList(list);
-      var pool = params.all ? list : due;
+      var pool = params.sel ? (window.__immoSel || []).map(function (id) { return BYID[id]; }).filter(Boolean) : params.all ? list : due;
+      if (params.sel) { window.__immoSel = null; history.replaceState(null, '', '#/abfragen?b=' + b + '&go=1&all=1'); }
       pool = pool.slice().sort(function (x, y) { return boxOf(x.sub.id).f - boxOf(y.sub.id).f || Math.random() - 0.5; });
       quiz = { b: b, queue: pool.map(function (e) { return e.sub.id; }), right: 0, again: 0, total: pool.length, shown: false };
     }
@@ -264,11 +299,11 @@
       AREAS.map(function (a) { return '<option value="' + a.id + '"' + (b === a.id ? ' selected' : '') + '>' + esc(areaLabel(a) + ': ' + plain(a.title)) + '</option>'; }).join('') +
       '</select></fieldset>' +
       '<div class="boxes">' + [1, 2, 3, 4, 5].map(function (f) {
-        return '<div class="boxf"><b>' + counts[f] + '</b><span>Fach ' + f + '</span><small>' + (f === 1 ? 'neu/nochmal' : 'nach ' + INTERVAL[f] + ' Tag' + (INTERVAL[f] > 1 ? 'en' : '')) + '</small></div>';
-      }).join('') + '</div>' +
+        return '<a class="boxf" href="#/fach?f=' + f + '&b=' + b + '"><b>' + counts[f] + '</b><span>Fach ' + f + '</span><small>' + (f === 1 ? 'neu/nochmal' : 'nach ' + INTERVAL[f] + ' Tag' + (INTERVAL[f] > 1 ? 'en' : '')) + '</small></a>';
+      }).join('') + '</div><p class="muted" style="font-size:14px;margin:-4px 0 8px">Tippe auf ein Fach, um Karten anzusehen, zu verschieben oder einzelne abzufragen.</p>' +
       '<p class="count">' + due.length + ' von ' + list.length + ' Karten sind heute dran.</p>' +
       '<div class="actions">' + (due.length ? '<a class="btn primary" href="#/abfragen?b=' + b + '&go=1">Los geht’s (' + due.length + ')</a>' : '<span class="hint" style="display:block">Für heute ist alles erledigt. 👍</span>') +
-      '<a class="btn" href="#/abfragen?b=' + b + '&go=1&all=1">Alle ' + list.length + ' üben</a></div></div>';
+      '<a class="btn" href="#/abfragen?b=' + b + '&go=1&all=1">Alle ' + list.length + ' üben</a><a class="btn" href="#/fach?f=0&b=' + b + '">Karten selbst auswählen</a></div></div>';
     $('#scope').addEventListener('change', function (ev) { location.hash = '#/abfragen?b=' + ev.target.value; });
   }
   function quizCard() {
@@ -301,6 +336,38 @@
     });
   }
 
+
+
+  /* ---------- Fächer des Karteikastens: ansehen, verschieben, auswählen ---------- */
+  function viewFach(params) {
+    setNav('abfragen'); document.title = 'Karteikasten – Immo Kaufmann';
+    var b = params.b || 'all', f = parseInt(params.f, 10) || 0;
+    var list = scopeList(b).filter(function (e) { return !f || boxOf(e.sub.id).f === f; });
+    var tabs = [0, 1, 2, 3, 4, 5].map(function (n) {
+      return '<a href="#/fach?f=' + n + '&b=' + b + '"' + (n === f ? ' class="on"' : '') + '>' + (n ? 'Fach ' + n : 'Alle') + '</a>';
+    }).join('');
+    main.innerHTML = '<div class="content"><div class="crumb"><a href="#/abfragen?b=' + b + '">Abfragen</a> › ' + esc(scopeName(b)) + '</div>' +
+      '<h1>' + (f ? 'Fach ' + f : 'Alle Fächer') + '</h1><nav class="ftabs">' + tabs + '</nav>' +
+      '<div class="selbar"><label class="opt"><input type="checkbox" id="selall"> Alle auswählen</label><span id="selcount" class="muted">0 ausgewählt</span></div>' +
+      (list.length ? '<ul class="flist">' + list.map(function (e) {
+        var bx = boxOf(e.sub.id);
+        return '<li><label><input type="checkbox" class="selc" value="' + esc(e.sub.id) + '"><span><small>' + esc(e.area.short || areaLabel(e.area)) + ' · ' + e.num + '</small>' + md(e.sub.title) + '</span></label><span class="fbadge">F' + bx.f + '</span></li>';
+      }).join('') + '</ul>' : '<p class="hint">In diesem Fach liegen keine Karten.</p>') +
+      '<div class="selactions"><button class="btn primary" id="selquiz" disabled>Auswahl abfragen</button>' +
+      '<span class="moveto"><select id="seltarget" class="sel" aria-label="Zielfach">' + [1, 2, 3, 4, 5].map(function (n) { return '<option value="' + n + '">nach Fach ' + n + '</option>'; }).join('') + '</select>' +
+      '<button class="btn" id="selmove" disabled>Verschieben</button></span></div></div>';
+    function picked() { return Array.prototype.map.call(main.querySelectorAll('.selc:checked'), function (c) { return c.value; }); }
+    function upd() { var n = picked().length; $('#selcount').textContent = n + ' ausgewählt'; $('#selquiz').disabled = !n; $('#selmove').disabled = !n; }
+    main.querySelectorAll('.selc').forEach(function (c) { c.addEventListener('change', upd); });
+    $('#selall').addEventListener('change', function (ev) { main.querySelectorAll('.selc').forEach(function (c) { c.checked = ev.target.checked; }); upd(); });
+    $('#selquiz').addEventListener('click', function () { window.__immoSel = picked(); quiz = null; location.hash = '#/abfragen?b=' + b + '&go=1&sel=1'; });
+    $('#selmove').addEventListener('click', function () {
+      var t = parseInt($('#seltarget').value, 10), ids = picked();
+      ids.forEach(function (id) { S.box[id] = { f: t, due: t === 1 ? 0 : Date.now() + INTERVAL[t] * DAY - 36e5 }; if (t === 5) S.done[id] = 1; });
+      save(); viewFach(params);
+      var m = document.createElement('p'); m.className = 'toast'; m.textContent = ids.length + (ids.length === 1 ? ' Karte' : ' Karten') + ' nach Fach ' + t + ' verschoben.'; main.querySelector('.content').prepend(m);
+    });
+  }
 
   /* ---------- Prüfungsfragen ---------- */
   var exam = null;
@@ -504,11 +571,16 @@
     else if (p[0] === 'druckvorschau') { viewHome(); printCards(scopeList(params.b || 'all'), ['a6', 'a7', 'a7x8'].indexOf(params.m) >= 0 ? params.m : 'a4', true); }
     else if (p[0] === 'merken') viewStars();
     else if (p[0] === 'abfragen') viewQuiz(params);
+    else if (p[0] === 'fach') viewFach(params);
     else if (p[0] === 'az') viewAZ(params);
     else if (p[0] === 'pruefung') viewExam(params);
     else viewHome();
     if (p[0] !== 'suche') { window.scrollTo(0, 0); var qi2 = $('#q'); if (qi2 && document.activeElement !== qi2) qi2.value = ''; }
   }
+  applyTheme();
+  $('#themebtn').addEventListener('click', function () {
+    var t = getPref('theme', 'auto'); setPref('theme', THEMES[(THEMES.indexOf(t) + 1) % 3]); applyTheme();
+  });
   var t;
   $('#q').addEventListener('input', function (ev) {
     clearTimeout(t); var v = ev.target.value;

@@ -271,3 +271,50 @@ h1,h2,.rt,.tile .t{hyphens:auto;-webkit-hyphens:auto;overflow-wrap:break-word}
   body.p-a7x8 #sheet .page:last-child{break-after:auto}
   body.p-a7x8 #sheet .card{outline:0.2mm dashed #9aa3ad;outline-offset:-0.1mm}
 }
+
+/* ---------- Startseite: Überschrift, kleine Knöpfe, Ansicht ---------- */
+h1.home-h1{font-size:24px;line-height:1.2;margin:4px 0 6px}
+h1.home-h1 span{display:block;font-size:17px;font-weight:600;color:var(--muted);margin-top:2px}
+.quickgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:4px 0 10px}
+@media (max-width:520px){ .quickgrid{grid-template-columns:repeat(3,1fr)} }
+.qbtn{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;text-decoration:none;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:6px 4px;min-height:48px;font:inherit;cursor:pointer}
+.qbtn b{font-size:14px;line-height:1.2}
+.qbtn small{font-size:11.5px;color:var(--muted);line-height:1.2;margin-top:2px}
+.qbtn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.qbtn.primary small{color:var(--accent-ink);opacity:.85}
+.viewswitch{display:flex;align-items:center;gap:4px;margin:6px 0 0;font-size:14px;color:var(--muted)}
+.viewswitch span{margin-right:4px}
+.viewswitch button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:4px 10px;min-height:34px;font-size:14px}
+.viewswitch button.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);font-weight:700}
+.tile .t{font-size:17px}
+/* Quadratische Kacheln, 3 nebeneinander */
+.sqs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (min-width:768px){ .sqs{grid-template-columns:repeat(5,1fr)} }
+.sq{aspect-ratio:1;display:flex;flex-direction:column;text-decoration:none;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 9px 9px;min-width:0}
+.sq-nr{font-size:22px;font-weight:800;color:var(--accent);line-height:1.1}
+.sq-t{font-size:12.5px;line-height:1.25;color:var(--ink);margin-top:4px;flex:1;hyphens:manual;overflow-wrap:break-word}
+.sq-m{font-size:11px;color:var(--muted)}
+.sq .progress{margin-top:4px;height:5px}
+
+/* Karteikasten: Fächer, Auswahl, Verschieben */
+a.boxf{text-decoration:none;color:inherit}
+a.boxf:hover{border-color:var(--accent)}
+.ftabs{display:flex;gap:4px;flex-wrap:wrap;margin:0 0 10px}
+.ftabs a{text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px;background:var(--surface);min-height:36px;display:inline-flex;align-items:center}
+.ftabs a.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);font-weight:700}
+.selbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 0 6px}
+.flist{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.flist li{display:flex;align-items:center;gap:8px;border-top:1px solid var(--line);padding:0 12px 0 0}
+.flist li:first-child{border-top:none}
+.flist label{flex:1;display:flex;gap:10px;align-items:center;padding:8px 0 8px 12px;min-height:48px;cursor:pointer}
+.flist input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.flist small{display:block;color:var(--muted);font-size:12px}
+.fbadge{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:6px;padding:2px 6px}
+.selactions{position:sticky;bottom:0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--bg);padding:10px 0 calc(10px + var(--safe-bottom));margin-top:8px;border-top:1px solid var(--line)}
+.moveto{display:flex;gap:6px;align-items:center}
+.moveto .sel{width:auto;min-width:130px}
+.btn:disabled{opacity:.5;cursor:default}
+.toast{background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 12px;font-weight:700;margin:0 0 10px}
+#themebtn{font-size:18px}
+.pager a{min-width:0;overflow-wrap:anywhere;hyphens:auto;-webkit-hyphens:auto}
