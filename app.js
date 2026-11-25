@@ -177,7 +177,7 @@
     html += '<div class="section-title">Gut zu wissen</div><div class="hint">Grundlage: KMK-Rahmenlehrplan Immobilienkaufmann/-frau (2006), Ausbildungsverordnung (2006) und Stundentafel der Berufsschulverordnung MV. Deine Schule kann Reihenfolge und Themen anders verteilen – Stellen mit ⚠ zeigen das.</div>' +
       '<div class="section-title">Deine Daten</div><div class="hint">Haken, Merkzettel, Notizen und Karteikasten bleiben nur auf diesem Gerät. Für ein neues Handy oder als Sicherung:' +
       '<div class="actions"><button class="btn" id="exp">Sicherung speichern</button><label class="btn" for="imp">Sicherung laden</label><input type="file" id="imp" accept=".json,application/json" hidden></div></div>' +
-      '<div class="section-title">Farbe</div>' + '<div class="colors" role="group" aria-label="Farbe"><span>Farbe:</span>' + ACCENTS.map(function (c) {
+      '<div class="section-title">Farbe</div>' + '<div class="colors" role="group" aria-label="Farbe">' + ACCENTS.map(function (c) {
         return '<button data-accent="' + c[0] + '" style="background:' + c[1] + '" aria-label="' + c[2] + '" title="' + c[2] + '"' + (getPref('accent', 'gruen') === c[0] ? ' class="on" aria-pressed="true"' : '') + '></button>';
       }).join('') + '</div>' + '</div>';
     main.innerHTML = html;
