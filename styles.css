@@ -526,3 +526,4 @@ table.tt thead th.today{background:var(--accent);color:var(--accent-ink)}
 .cal-d em.chip,.cal-d em.more{height:auto}
 .cal-d em.chip{overflow-wrap:normal;word-break:normal;hyphens:manual;-webkit-hyphens:manual;padding:2px 0;letter-spacing:-.2px}
 @media (max-width:619px){ .cal-d em.chip{font-size:8.5px} }
+.cal-d em.chip b{font-weight:800;opacity:.95}

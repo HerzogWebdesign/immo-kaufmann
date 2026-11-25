@@ -5,6 +5,12 @@
   var DAYS = [['mo', 'Mo'], ['di', 'Di'], ['mi', 'Mi'], ['do', 'Do'], ['fr', 'Fr']];
   var TYPES = [['ka', 'Klassenarbeit', '#c0392b'], ['test', 'Test', '#d35400'], ['pruef', 'Prüfung (IHK)', '#8e44ad'], ['block', 'Berufsschule / Block', '#1f6f5c'], ['abgabe', 'Abgabe', '#2c6fb3'], ['frei', 'Ferien / frei', '#7f8c8d'], ['sonst', 'Sonstiges', '#5c6773']];
   var P;
+  function subjects() {
+    var a = (window.IMMO || []).slice().sort(function (x, y) { return (x.kind === y.kind ? 0 : x.kind === 'lf' ? -1 : 1) || (x.nr - y.nr); });
+    var lab = { en: 'Englisch', de: 'Deutsch', sk: 'Sozialkunde', rp: 'Philo / Religion' }, sh = { en: 'Englisch', de: 'Deutsch', sk: 'Sozialk.', rp: 'Philo' };
+    return a.map(function (x) { return [x.id, x.kind === 'lf' ? 'Lernfeld ' + x.nr : (lab[x.id] || x.title), x.kind === 'lf' ? 'LF ' + x.nr : (sh[x.id] || x.title)]; }).concat([['sport', 'Sport', 'Sport']]);
+  }
+  function subj(id) { return subjects().filter(function (x) { return x[0] === id; })[0]; }
   var SHORT = { ka: 'Klassen\u00ADarbeit', test: 'Test', pruef: 'Prüfung', block: 'Schule', abgabe: 'Abgabe', frei: 'frei' };
   function load() {
     try { P = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { P = null; }
@@ -82,7 +88,7 @@
   }
   function entryHtml(e) {
     var t = typeOf(e.type);
-    return '<li class="cal-e" data-id="' + esc(e.id) + '"><span class="cal-dot" style="background:' + t[2] + '"></span><div class="cal-et"><small>' + deDate(e.date) + (e.end && e.end !== e.date ? ' – ' + deDate(e.end) : '') + (e.time ? ' · ' + esc(e.time) + ' Uhr' : '') + ' · ' + esc(t[1]) + '</small><b>' + esc(e.title) + '</b>' + (e.note ? '<span>' + esc(e.note) + '</span>' : '') + '</div>' +
+    return '<li class="cal-e" data-id="' + esc(e.id) + '"><span class="cal-dot" style="background:' + t[2] + '"></span><div class="cal-et"><small>' + deDate(e.date) + (e.end && e.end !== e.date ? ' – ' + deDate(e.end) : '') + (e.time ? ' · ' + esc(e.time) + ' Uhr' : '') + ' · ' + esc(t[1]) + (e.subj && subj(e.subj) ? ' · ' + esc(subj(e.subj)[1]) : '') + '</small><b>' + esc(e.title) + '</b>' + (e.note ? '<span>' + esc(e.note) + '</span>' : '') + '</div>' +
       '<div class="cal-ea"><button class="btn cal-ics" title="In den Kalender des Handys übernehmen">📅</button><button class="btn cal-ed" title="Bearbeiten">✎</button></div></li>';
   }
   function viewCal(main) {
@@ -99,7 +105,8 @@
     for (var dd = 1; dd <= days; dd++) {
       var k = y + '-' + z(m + 1) + '-' + z(dd), ev = byDay[k] || [], cls = 'cal-d' + (k === iso(now) ? ' today' : '') + (k === calSel ? ' sel' : '') + (ev.length ? ' has' : '');
       cells += '<button class="' + cls + '" data-d="' + k + '"><span>' + dd + '</span>' + ev.slice(0, 2).map(function (e) {
-        return '<em class="chip" style="background:' + typeOf(e.type)[2] + '">' + esc(SHORT[e.type] || e.title.split(' ')[0]) + '</em>';
+        var sj = e.subj && subj(e.subj);
+        return '<em class="chip" style="background:' + typeOf(e.type)[2] + '">' + esc(SHORT[e.type] || e.title.split(' ')[0]) + (sj ? '<br><b>' + esc(sj[2]) + '</b>' : '') + '</em>';
       }).join('') + (ev.length > 2 ? '<em class="more">+' + (ev.length - 2) + '</em>' : '') + '</button>';
     }
     var list = calSel ? (byDay[calSel] || []) : upcoming();
@@ -111,7 +118,8 @@
       '<div class="actions" style="margin:10px 0"><button class="btn primary" id="cal-new">+ Termin' + (calSel ? ' am ' + deDate(calSel) : '') + '</button>' + (calSel ? '<button class="btn" id="cal-all">Alle kommenden zeigen</button>' : '') + (P.cal.length ? '<button class="btn" id="cal-export">Alle in den Handy-Kalender</button>' : '') + '</div>' +
       '<div id="cal-form"' + (calEdit ? '' : ' hidden') + ' class="cal-form"><h3>' + (editing ? 'Termin bearbeiten' : 'Neuer Termin') + '</h3>' +
         '<label>Art<select id="cf-type" class="sel">' + TYPES.map(function (t) { return '<option value="' + t[0] + '"' + (f.type === t[0] ? ' selected' : '') + '>' + t[1] + '</option>'; }).join('') + '</select></label>' +
-        '<label>Titel<input id="cf-title" class="gq" value="' + esc(f.title) + '" placeholder="z. B. Klassenarbeit Lernfeld 4"></label>' +
+        '<label>Lernfeld / Fach<select id="cf-subj" class="sel"><option value="">– ohne –</option>' + subjects().map(function (x) { return '<option value="' + x[0] + '"' + (f.subj === x[0] ? ' selected' : '') + '>' + esc(x[1]) + '</option>'; }).join('') + '</select></label>' +
+        '<label>Titel<input id="cf-title" class="gq" value="' + esc(f.title) + '" placeholder="z. B. Wohnfläche und Kaution (oder leer lassen)"></label>' +
         '<div class="cf-row"><label>Datum<input type="date" id="cf-date" class="gq" value="' + esc(f.date) + '"></label><label>bis (optional)<input type="date" id="cf-end" class="gq" value="' + esc(f.end || '') + '"></label><label>Uhrzeit<input type="time" id="cf-time" class="gq" value="' + esc(f.time || '') + '"></label></div>' +
         '<label>Notiz<textarea id="cf-note" class="gq" rows="2" placeholder="z. B. Themen: Kaution, Wohnfläche">' + esc(f.note || '') + '</textarea></label>' +
         '<div class="actions"><button class="btn primary" id="cf-save">Speichern</button><button class="btn" id="cf-cancel">Abbrechen</button>' + (editing ? '<button class="btn" id="cf-del">Löschen</button>' : '') + '</div></div>' +
@@ -125,9 +133,10 @@
     b('#cf-cancel', function () { calEdit = null; viewCal(main); });
     b('#cf-del', function () { if (confirm('Termin löschen?')) { P.cal = P.cal.filter(function (e) { return e.id !== calEdit; }); save(); calEdit = null; viewCal(main); } });
     b('#cf-save', function () {
-      var t = $('#cf-title').value.trim(), d = $('#cf-date').value;
+      var t = $('#cf-title').value.trim(), d = $('#cf-date').value, sjv = $('#cf-subj').value;
+      if (!t && sjv) t = typeOf($('#cf-type').value)[1] + ' ' + subj(sjv)[1];
       if (!t) { $('#cf-title').focus(); return; } if (!d) { $('#cf-date').focus(); return; }
-      var e = { id: calEdit || 'c' + Date.now(), type: $('#cf-type').value, title: t, date: d, end: $('#cf-end').value > d ? $('#cf-end').value : '', time: $('#cf-time').value, note: $('#cf-note').value.trim() };
+      var e = { id: calEdit || 'c' + Date.now(), type: $('#cf-type').value, subj: $('#cf-subj').value, title: t, date: d, end: $('#cf-end').value > d ? $('#cf-end').value : '', time: $('#cf-time').value, note: $('#cf-note').value.trim() };
       P.cal = P.cal.filter(function (x) { return x.id !== e.id; }); P.cal.push(e);
       if (save()) { calEdit = null; calSel = d; var dd = parseIso(d); calMonth = new Date(dd.getFullYear(), dd.getMonth(), 1); viewCal(main); }
     });
@@ -155,7 +164,10 @@
         var endD = parseIso(e.end || e.date); endD.setDate(endD.getDate() + 1);
         L.push('DTSTART;VALUE=DATE:' + dt(e.date), 'DTEND;VALUE=DATE:' + dt(iso(endD)));
       }
-      var tn = typeOf(e.type)[1]; L.push('SUMMARY:' + esc2(e.title.toLowerCase().indexOf(tn.split(' ')[0].toLowerCase()) === 0 ? e.title : tn + ': ' + e.title));
+      var tn = typeOf(e.type)[1], sj = e.subj && subj(e.subj), tt = e.title || (tn + (sj ? ' ' + sj[1] : ''));
+      if (tt.toLowerCase().indexOf(tn.split(' ')[0].toLowerCase()) !== 0) tt = tn + ': ' + tt;
+      if (sj && tt.indexOf(sj[1]) < 0 && tt.indexOf(sj[2]) < 0) tt += ' (' + sj[1] + ')';
+      L.push('SUMMARY:' + esc2(tt));
       if (e.note) L.push('DESCRIPTION:' + esc2(e.note));
       if (e.type === 'ka' || e.type === 'test' || e.type === 'pruef') L.push('BEGIN:VALARM', 'TRIGGER:-P2D', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc2('In 2 Tagen: ' + e.title), 'END:VALARM');
       L.push('END:VEVENT');
