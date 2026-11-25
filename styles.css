@@ -431,3 +431,10 @@ body.marking .totop{bottom:calc(80px + var(--safe-bottom))}
 .nz-ok.warn-t{color:#a15c00}
 .nz-newbox{border-top-color:var(--accent)}
 .nz-ok:empty{display:none}
+/* Druckansicht: Auswahl */
+details.pick{background:var(--surface);border:1px solid var(--line);border-radius:12px;margin:0 0 10px}
+details.pick summary{cursor:pointer;padding:10px 12px;font-weight:700;min-height:44px;display:flex;align-items:center;gap:6px}
+.pick-in{padding:0 10px 10px}
+.pick-bar{display:flex;gap:12px;margin:0 0 6px;font-size:14px}
+.pick .flist{max-height:340px;overflow:auto}
+.js-bag.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}

@@ -21,10 +21,10 @@
 
   /* ---------- Speicher (nur lokal auf dem Gerät) ---------- */
   var KEY = 'immo-kaufmann-v2';
-  var S = { done: {}, star: {}, notes: {}, box: {}, qs: {}, hl: {} };
+  var S = { done: {}, star: {}, notes: {}, box: {}, qs: {}, hl: {}, bag: {} };
   try {
     var raw = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (raw) S = { done: raw.done || {}, star: raw.star || {}, notes: raw.notes || {}, box: raw.box || {}, qs: raw.qs || {}, hl: raw.hl || {} };
+    if (raw) S = { done: raw.done || {}, star: raw.star || {}, notes: raw.notes || {}, box: raw.box || {}, qs: raw.qs || {}, hl: raw.hl || {}, bag: raw.bag || {} };
     else { var old = JSON.parse(localStorage.getItem('immo-kaufmann-gelernt-v1') || 'null'); if (old) S.done = old; }
   } catch (e) {}
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
@@ -204,7 +204,7 @@
       f.text().then(function (t) {
         var j = JSON.parse(t); if (!j || j.app !== 'immo-kaufmann' || !j.data) throw new Error('x');
         if (!confirm('Sicherung laden? Die jetzigen Haken, Notizen und der Merkzettel auf diesem Gerät werden ersetzt.')) return;
-        S = { done: j.data.done || {}, star: j.data.star || {}, notes: j.data.notes || {}, box: j.data.box || {}, qs: j.data.qs || {}, hl: j.data.hl || {} }; save(); viewHome();
+        S = { done: j.data.done || {}, star: j.data.star || {}, notes: j.data.notes || {}, box: j.data.box || {}, qs: j.data.qs || {}, hl: j.data.hl || {}, bag: j.data.bag || {} }; save(); viewHome();
       }).catch(function () { alert('Diese Datei ist keine Sicherung von Immo Kaufmann.'); });
     });
   }
@@ -242,7 +242,7 @@
       '<article class="sub"><div class="sub-head"><h1>' + md(s.title) + '</h1>' +
       '<div class="subtools">' + starBtnHtml(s.id) + markBtnHtml() + '</div></div>' +
       s.content.map(blockHtml).join('') +
-      '<div class="essenz-label"><span>Essenz · Lernkarte</span><div class="cardtools">' + starBtnHtml(s.id) + markBtnHtml() +
+      '<div class="essenz-label"><span>Essenz · Lernkarte</span><div class="cardtools">' + starBtnHtml(s.id) + markBtnHtml() + bagBtnHtml(s.id) +
       '<label class="done"><input type="checkbox" id="donebox"' + (isDone(s.id) ? ' checked' : '') + '> gelernt</label></div></div>' +
       cardHtml(e) +
       '<section class="notebox" id="notebox"></section>' +
@@ -253,6 +253,12 @@
       '</div></div>';
     function refreshSide() { var li = document.querySelector('.side a[href="#/s/' + s.id + '"]'); if (li) { li.querySelectorAll('.star,.check').forEach(function (x) { x.remove(); }); li.insertAdjacentHTML('beforeend', marks(s.id)); } }
     $('#donebox').addEventListener('change', function (ev) { setDone(s.id, ev.target.checked); refreshSide(); });
+    main.querySelectorAll('.js-bag').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var v = !inBag(s.id); setBag(s.id, v);
+        main.querySelectorAll('.js-bag').forEach(function (x) { x.classList.toggle('on', v); x.setAttribute('aria-pressed', v); x.textContent = v ? '🖨 In der Mappe' : '🖨 Druckmappe'; });
+      });
+    });
     main.querySelectorAll('.js-star').forEach(function (b) {
       b.addEventListener('click', function () {
         var v = !isStar(s.id); setStar(s.id, v);
@@ -310,7 +316,7 @@
 
 
   /* ---------- Fehler melden (ohne Server: per WhatsApp oder E-Mail) ---------- */
-  var APP_VERSION = 'v20';
+  var APP_VERSION = 'v21';
   function reportHtml(ctx) {
     return '<details class="report"><summary>Fehler gefunden?</summary><div class="report-in">' +
       '<label for="rep-txt">Was stimmt nicht?</label><textarea id="rep-txt" rows="3" placeholder="z. B. Zahl falsch, Satz unklar, Paragraf stimmt nicht …"></textarea>' +
@@ -402,6 +408,7 @@
       (withNotes.length ? '<div class="section-title">Karten mit Notiz</div><div class="results">' + withNotes.map(function (e) {
         return subLink(e, '<div class="rs">Notiz: ' + esc(notesText(e.sub.id).slice(0, 140)) + '</div>');
       }).join('') + '</div>' : '') + '</div>';
+    var s2b = $('#star2bag'); if (s2b) s2b.addEventListener('click', function () { list.forEach(function (e) { if (!inBag(e.sub.id)) S.bag[e.sub.id] = Date.now(); }); save(); s2b.textContent = '✓ in der Druckmappe'; });
     main.querySelectorAll('.unstar').forEach(function (b) { b.addEventListener('click', function () { setStar(b.dataset.id, false); viewStars(); }); });
   }
 
@@ -410,10 +417,11 @@
   function dueList(list) { var now = Date.now(); return list.filter(function (e) { return boxOf(e.sub.id).due <= now; }); }
   function scopeList(b) {
     if (b === 'star') return SUBS.filter(function (e) { return isStar(e.sub.id); });
+    if (b === 'mappe') return SUBS.filter(function (e) { return inBag(e.sub.id); }).sort(function (x, y) { return S.bag[x.sub.id] - S.bag[y.sub.id]; });
     if (b && BYID[b] && BYID[b].type === 'area') return SUBS.filter(function (e) { return e.area.id === b; });
     return SUBS.slice();
   }
-  function scopeName(b) { return b === 'star' ? 'Merkzettel' : (b && BYID[b] && BYID[b].area) ? areaLabel(BYID[b].area) + ': ' + plain(BYID[b].area.title) : 'Alle Karten'; }
+  function scopeName(b) { return b === 'mappe' ? 'Druckmappe' : b === 'star' ? 'Merkzettel' : (b && BYID[b] && BYID[b].area) ? areaLabel(BYID[b].area) + ': ' + plain(BYID[b].area.title) : 'Alle Karten'; }
   var quiz = null;
   function viewQuiz(params) {
     setNav('abfragen'); document.title = 'Abfragen – Immo Kaufmann';
@@ -675,39 +683,81 @@
   }
 
   var FORMATS = [['a6', 'A6 einzeln'], ['a7', 'A7 einzeln (Spielkarte)'], ['a4', '4 × A6 auf A4'], ['a7x8', '8 × A7 auf A4 quer']];
+  function pdfCard(e, noNote) {
+    var c = e.sub.card || {}, a = e.area;
+    return { head: a.short || a.title, headRight: e.num + ' · ' + a.year + '. Jahr', title: c.title || e.sub.title,
+      bullets: c.bullets, rules: c.rules, calc: c.calc,
+      merke: c.merke ? (/^merke/i.test(c.merke) ? c.merke : 'Merke: ' + c.merke) : '', quelle: c.quelle,
+      note: noNote ? '' : notesText(e.sub.id, true), marks: S.hl[e.sub.id] || {},
+      accent: window.ImmoPDF.hex(getComputedStyle(document.documentElement).getPropertyValue('--card-accent')) };
+  }
+  function makePdf(list, mode, noNote) {
+    var bytes = window.ImmoPDF.build(list.map(function (e) { return pdfCard(e, noNote); }), mode);
+    var name = 'Lernkarten-' + ({ a6: 'A6', a7: 'A7', a4: '4xA6-auf-A4', a7x8: '8xA7-auf-A4' })[mode] + '.pdf';
+    var blob = new Blob([bytes], { type: 'application/pdf' }), file = null;
+    try { file = new File([blob], name, { type: 'application/pdf' }); } catch (x) {}
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+      return navigator.share({ files: [file], title: 'Immo Kaufmann – Lernkarten' }).catch(function () {});
+    }
+    var url = URL.createObjectURL(blob), aEl = document.createElement('a');
+    aEl.href = url; aEl.download = name; aEl.target = '_blank'; document.body.appendChild(aEl); aEl.click();
+    setTimeout(function () { URL.revokeObjectURL(url); aEl.remove(); }, 60000);
+  }
+  function inBag(id) { return !!S.bag[id]; }
+  function setBag(id, v) { if (v) S.bag[id] = Date.now(); else delete S.bag[id]; save(); }
+  function bagBtnHtml(id) { return '<button class="starbtn js-bag' + (inBag(id) ? ' on' : '') + '" aria-pressed="' + inBag(id) + '">' + (inBag(id) ? '🖨 In der Mappe' : '🖨 Druckmappe') + '</button>'; }
+  var printExcl = {};
   function viewPrintPreview(params) {
     setNav('druck'); document.title = 'Druckansicht – Immo Kaufmann';
     var m = FORMATS.some(function (f) { return f[0] === params.m; }) ? params.m : 'a6';
-    var list = params.ids ? params.ids.split(',').map(function (id) { return BYID[id]; }).filter(function (e) { return e && e.type === 'sub'; })
+    var all = params.ids ? params.ids.split(',').map(function (id) { return BYID[id]; }).filter(function (e) { return e && e.type === 'sub'; })
       : scopeList(params.b || 'all').filter(function (e) { return !params.only || !isDone(e.sub.id); });
-    var noNote = params.nn === '1', hasNotes = list.some(function (e) { return notesText(e.sub.id, true); });
+    var noNote = params.nn === '1', hasNotes = all.some(function (e) { return notesText(e.sub.id, true); });
     var base = '#/druckansicht?' + (params.ids ? 'ids=' + params.ids : 'b=' + (params.b || 'all') + (params.only ? '&only=1' : ''));
     var standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
     var per = m === 'a4' ? 4 : m === 'a7x8' ? 8 : 1;
-    main.innerHTML = '<div class="content"><div class="crumb"><a href="' + (params.ids && BYID[params.ids.split(',')[0]] ? '#/s/' + params.ids.split(',')[0] : '#/druck') + '">Zurück</a> › Druckansicht</div>' +
+    var back = params.ids && BYID[params.ids.split(',')[0]] ? '#/s/' + params.ids.split(',')[0] : '#/druck';
+    main.innerHTML = '<div class="content"><div class="crumb"><a href="' + back + '">Zurück</a> › Druckansicht</div>' +
       '<h1>Druckansicht</h1><div class="fmt" role="group" aria-label="Format">' + FORMATS.map(function (f) {
         return '<a href="' + base + '&m=' + f[0] + (noNote ? '&nn=1' : '') + '"' + (f[0] === m ? ' class="on" aria-current="true"' : '') + '>' + f[1] + '</a>';
       }).join('') + '</div>' +
-      (hasNotes ? '<label class="opt"><input type="checkbox" id="withnotes"' + (noNote ? '' : ' checked') + '> Meine Notizen mitdrucken</label>' : '') +
-      '<p class="count">' + list.length + (list.length === 1 ? ' Karte' : ' Karten') + ' → ' + Math.ceil(list.length / per) + ' Blatt ' + ({ a6: 'A6', a7: 'A7', a4: 'A4', a7x8: 'A4 quer' })[m] + '</p>' +
-      '<div class="actions"><button class="btn primary" id="doprint">Drucken / als PDF sichern</button></div>' +
-      '<div class="hint printhint">Im Druckfenster: Größe auf 100 % lassen, Ränder „keine“, falls angeboten. Als PDF sichern: im Druckfenster auf Teilen tippen → „In Dateien sichern“.' +
-      (standalone ? '<br><b>Öffnet sich kein Druckfenster?</b> In der App vom Home-Bildschirm kann das iPhone nicht immer drucken. Dann: <a href="' + esc(location.href) + '" target="_blank" rel="noopener">Druckansicht in Safari öffnen</a> und dort drucken.' : '') + '</div>' +
+      (hasNotes ? '<label class="opt"><input type="checkbox" id="withnotes"' + (noNote ? '' : ' checked') + '> Notizen mitdrucken (nur die mit „auf die Karte“)</label>' : '') +
+      (all.length > 1 ? '<details class="pick" id="pick"><summary>Karten auswählen <span id="pickcount"></span></summary><div class="pick-in">' +
+        '<div class="pick-bar"><button class="linkbtn" id="pick-all">alle</button><button class="linkbtn" id="pick-none">keine</button>' +
+        (params.b === 'mappe' ? '<button class="linkbtn" id="bag-clear">Druckmappe leeren</button>' : '') + '</div><ul class="flist">' +
+        all.map(function (e) { return '<li><label><input type="checkbox" class="pk" value="' + esc(e.sub.id) + '"' + (printExcl[e.sub.id] ? '' : ' checked') + '><span><small>' + esc(e.area.short || areaLabel(e.area)) + ' · ' + e.num + '</small>' + md(e.sub.title) + '</span></label></li>'; }).join('') +
+        '</ul></div></details>' : '') +
+      '<p class="count" id="pcount"></p>' +
+      '<div class="actions"><button class="btn primary" id="dopdf">PDF erstellen</button>' + (standalone ? '' : '<button class="btn" id="doprint">Direkt drucken</button>') + '</div>' +
+      '<div class="hint printhint">„PDF erstellen“ öffnet auf iPhone und Tablet das Teilen-Menü: dort <b>Drucken</b> oder <b>In Dateien sichern</b> wählen. Beim Drucken die Größe auf 100 % lassen.</div>' +
       '<div class="preview pv-' + m + '" id="preview"></div></div>';
-    printCards(list, m, true, noNote);
-    var pv = $('#preview'); pv.innerHTML = $('#sheet').innerHTML;
-    var natural = { a6: 397, a7: 280, a4: 794, a7x8: 1119 }[m];
-    pv.style.zoom = Math.min(1, (pv.parentNode.clientWidth - 2) / natural).toFixed(3);
+    function list() { return all.filter(function (e) { return !printExcl[e.sub.id]; }); }
+    function refresh() {
+      var l = list();
+      $('#pcount').textContent = l.length + (l.length === 1 ? ' Karte' : ' Karten') + ' → ' + Math.ceil(l.length / per) + ' Blatt ' + ({ a6: 'A6', a7: 'A7', a4: 'A4', a7x8: 'A4 quer' })[m];
+      var pc = $('#pickcount'); if (pc) pc.textContent = '(' + l.length + ' von ' + all.length + ')';
+      $('#dopdf').disabled = !l.length; var dp = $('#doprint'); if (dp) dp.disabled = !l.length;
+      printCards(l, m, true, noNote);
+      var pv = $('#preview'); pv.innerHTML = $('#sheet').innerHTML;
+      var natural = { a6: 397, a7: 280, a4: 794, a7x8: 1119 }[m];
+      pv.style.zoom = Math.min(1, (pv.parentNode.clientWidth - 2) / natural).toFixed(3);
+    }
+    refresh();
+    main.querySelectorAll('.pk').forEach(function (c) { c.addEventListener('change', function () { if (c.checked) delete printExcl[c.value]; else printExcl[c.value] = 1; refresh(); }); });
+    var pa = $('#pick-all'); if (pa) pa.addEventListener('click', function () { main.querySelectorAll('.pk').forEach(function (c) { c.checked = true; delete printExcl[c.value]; }); refresh(); });
+    var pn = $('#pick-none'); if (pn) pn.addEventListener('click', function () { main.querySelectorAll('.pk').forEach(function (c) { c.checked = false; printExcl[c.value] = 1; }); refresh(); });
+    var bc = $('#bag-clear'); if (bc) bc.addEventListener('click', function () { if (confirm('Druckmappe leeren?')) { S.bag = {}; save(); location.hash = '#/druck'; } });
     var wn = $('#withnotes'); if (wn) wn.addEventListener('change', function () { location.hash = base + '&m=' + m + (wn.checked ? '' : '&nn=1'); });
-    $('#doprint').addEventListener('click', function () { printCards(list, m, false, noNote); });
+    $('#dopdf').addEventListener('click', function () { var l = list(); if (l.length) makePdf(l, m, noNote); });
+    var dp = $('#doprint'); if (dp) dp.addEventListener('click', function () { var l = list(); if (l.length) printCards(l, m, false, noNote); });
   }
   function viewPrint(params) {
     setNav('druck'); document.title = 'Drucken – Immo Kaufmann';
-    var sel = params.b || 'all';
+    var sel = params.b || (Object.keys(S.bag).length ? 'mappe' : 'all');
     var opt = function (v, label) { return '<div class="opt"><input type="radio" name="b" id="b-' + v + '" value="' + v + '"' + (sel === v ? ' checked' : '') + '><label for="b-' + v + '">' + label + '</label></div>'; };
     main.innerHTML = '<div class="content"><div class="crumb"><a href="#/">Start</a> › Drucken</div><h1>Lernkarten drucken oder als PDF speichern</h1>' +
       '<p class="lead">Wähle Karten und Format. In der Druckansicht siehst du die Karten vorher und kannst sie drucken oder als PDF sichern.</p>' +
-      '<fieldset><legend>Welche Karten?</legend>' + opt('all', 'Alle') + opt('star', 'Merkzettel') +
+      '<fieldset><legend>Welche Karten?</legend>' + opt('mappe', 'Druckmappe (' + Object.keys(S.bag).filter(function (id) { return BYID[id]; }).length + ' Karten)') + opt('all', 'Alle') + opt('star', 'Merkzettel') +
       AREAS.map(function (a) { return opt(a.id, a.year + '. Jahr · ' + areaLabel(a) + ': ' + md(a.title)); }).join('') +
       '<div class="opt"><input type="checkbox" id="only-open"><label for="only-open">Nur Karten, die noch nicht „gelernt“ sind</label></div></fieldset>' +
       '<fieldset><legend>Format</legend>' +
@@ -786,5 +836,5 @@
   if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
     navigator.serviceWorker.register('sw.js').catch(function () {});
   }
-  window.__IMMO_DEBUG = { SUBS: SUBS, cardHtml: cardHtml, printCards: printCards };
+  window.__IMMO_DEBUG = { SUBS: SUBS, cardHtml: cardHtml, printCards: printCards, pdfCard: pdfCard };
 })();
