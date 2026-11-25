@@ -725,6 +725,12 @@
   });
   $('#searchform').addEventListener('submit', function (ev) { ev.preventDefault(); $('#q').blur(); });
   window.addEventListener('hashchange', function () { navDepth++; route(); });
+  var totop = $('#totop'), tick = false;
+  window.addEventListener('scroll', function () {
+    if (tick) return; tick = true;
+    requestAnimationFrame(function () { totop.hidden = window.scrollY < 400; tick = false; });
+  }, { passive: true });
+  totop.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
   $('#backbtn').addEventListener('click', function () {
     if (navDepth > 0) { navDepth -= 2; history.back(); }
     else location.hash = parentOf(location.hash.replace(/^#\/?/, '').split('?')[0]);
