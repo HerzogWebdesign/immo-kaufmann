@@ -21,10 +21,10 @@
 
   /* ---------- Speicher (nur lokal auf dem Gerät) ---------- */
   var KEY = 'immo-kaufmann-v2';
-  var S = { done: {}, star: {}, notes: {}, box: {}, qs: {} };
+  var S = { done: {}, star: {}, notes: {}, box: {}, qs: {}, hl: {} };
   try {
     var raw = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (raw) S = { done: raw.done || {}, star: raw.star || {}, notes: raw.notes || {}, box: raw.box || {}, qs: raw.qs || {} };
+    if (raw) S = { done: raw.done || {}, star: raw.star || {}, notes: raw.notes || {}, box: raw.box || {}, qs: raw.qs || {}, hl: raw.hl || {} };
     else { var old = JSON.parse(localStorage.getItem('immo-kaufmann-gelernt-v1') || 'null'); if (old) S.done = old; }
   } catch (e) {}
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
@@ -194,7 +194,7 @@
       f.text().then(function (t) {
         var j = JSON.parse(t); if (!j || j.app !== 'immo-kaufmann' || !j.data) throw new Error('x');
         if (!confirm('Sicherung laden? Die jetzigen Haken, Notizen und der Merkzettel auf diesem Gerät werden ersetzt.')) return;
-        S = { done: j.data.done || {}, star: j.data.star || {}, notes: j.data.notes || {}, box: j.data.box || {}, qs: j.data.qs || {} }; save(); viewHome();
+        S = { done: j.data.done || {}, star: j.data.star || {}, notes: j.data.notes || {}, box: j.data.box || {}, qs: j.data.qs || {}, hl: j.data.hl || {} }; save(); viewHome();
       }).catch(function () { alert('Diese Datei ist keine Sicherung von Immo Kaufmann.'); });
     });
   }
@@ -230,7 +230,9 @@
       '<div class="content">' +
       '<div class="crumb"><a href="#/b/' + esc(a.id) + '">' + areaLabel(a) + ' · ' + md(a.title) + '</a> › ' + md(e.topic.title) + '</div>' +
       '<article class="sub"><div class="sub-head"><h1>' + md(s.title) + '</h1>' +
-      '<button class="starbtn' + (isStar(s.id) ? ' on' : '') + '" id="starbtn" aria-pressed="' + isStar(s.id) + '">' + (isStar(s.id) ? '★ Gemerkt' : '☆ Merken') + '</button></div>' +
+      '<div class="subtools"><button class="starbtn' + (isStar(s.id) ? ' on' : '') + '" id="starbtn" aria-pressed="' + isStar(s.id) + '">' + (isStar(s.id) ? '★ Gemerkt' : '☆ Merken') + '</button>' +
+      '<button class="starbtn markbtn" id="markbtn" aria-pressed="false">🖍 Markieren</button></div></div>' +
+      '<p class="marktip" id="marktip" hidden>Tippe auf eine Zeile, um sie gelb zu markieren. Nochmal tippen hebt die Markierung auf. <button class="linkbtn" id="markclear" hidden>Alle löschen</button></p>' +
       s.content.map(blockHtml).join('') +
       '<div class="essenz-label"><span>Essenz · Lernkarte</span>' +
       '<label class="done"><input type="checkbox" id="donebox"' + (isDone(s.id) ? ' checked' : '') + '> gelernt</label></div>' +
@@ -256,12 +258,13 @@
       }, 400);
     });
     bindReport(subCtx);
+    document.body.classList.remove('marking'); setupMarker(s.id);
     var cur = document.querySelector('.side [aria-current="page"]'); if (cur) cur.scrollIntoView({ block: 'center' });
   }
 
 
   /* ---------- Fehler melden (ohne Server: per WhatsApp oder E-Mail) ---------- */
-  var APP_VERSION = 'v13';
+  var APP_VERSION = 'v14';
   function reportHtml(ctx) {
     return '<details class="report"><summary>Fehler gefunden?</summary><div class="report-in">' +
       '<label for="rep-txt">Was stimmt nicht?</label><textarea id="rep-txt" rows="3" placeholder="z. B. Zahl falsch, Satz unklar, Paragraf stimmt nicht …"></textarea>' +
@@ -273,6 +276,54 @@
     var wa = $('#rep-wa'), ml = $('#rep-mail');
     if (wa) wa.addEventListener('click', function () { window.open('https://wa.me/?text=' + encodeURIComponent(msg()), '_blank', 'noopener'); });
     if (ml) ml.addEventListener('click', function () { location.href = 'mailto:?subject=' + encodeURIComponent('Fehler in Immo Kaufmann') + '&body=' + encodeURIComponent(msg()); });
+  }
+
+
+  /* ---------- Textmarker (nur dieses Gerät) ---------- */
+  var CARD_MARK = 'li, tr, .k-merk, .k-note';
+  function contentMarkables(art) {
+    return Array.prototype.filter.call(art.querySelectorAll('p, li, tr, .note, .warn'), function (el) {
+      return !el.closest('.card') && !el.closest('.notebox') && !el.closest('details') && !el.classList.contains('src');
+    });
+  }
+  function applyCardMarks(root) {
+    Array.prototype.forEach.call((root || document).querySelectorAll('.card[data-card]'), function (card) {
+      var m = S.hl[card.dataset.card] || {};
+      Array.prototype.forEach.call(card.querySelectorAll(CARD_MARK), function (el, i) { el.classList.toggle('hl', !!m['k:' + i]); });
+    });
+  }
+  function markCount(id) { return Object.keys(S.hl[id] || {}).length; }
+  function setupMarker(id) {
+    var art = main.querySelector('article.sub'); if (!art) return;
+    var cm = contentMarkables(art);
+    function paint() {
+      var m = S.hl[id] || {};
+      cm.forEach(function (el, i) { el.classList.toggle('hl', !!m['c:' + i]); });
+      applyCardMarks(art);
+      var clr = $('#markclear'); if (clr) clr.hidden = !markCount(id);
+    }
+    paint();
+    var btn = $('#markbtn');
+    btn.addEventListener('click', function () {
+      var on = !document.body.classList.contains('marking');
+      document.body.classList.toggle('marking', on); btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on);
+      btn.textContent = on ? '🖍 Fertig' : '🖍 Markieren';
+      var tip = $('#marktip'); if (tip) tip.hidden = !on;
+    });
+    $('#markclear').addEventListener('click', function () { if (confirm('Alle Markierungen auf dieser Seite löschen?')) { delete S.hl[id]; save(); paint(); } });
+    art.addEventListener('click', function (ev) {
+      if (!document.body.classList.contains('marking')) return;
+      var el = ev.target.closest('p, li, tr, .note, .warn, .k-merk, .k-note'); if (!el || !art.contains(el)) return;
+      var key = null, card = el.closest('.card');
+      if (card) { var i = Array.prototype.indexOf.call(card.querySelectorAll(CARD_MARK), el); if (i >= 0) key = 'k:' + i; }
+      else { var j = cm.indexOf(el); if (j >= 0) key = 'c:' + j; }
+      if (!key) return;
+      ev.preventDefault();
+      var m = S.hl[id] || (S.hl[id] = {});
+      if (m[key]) delete m[key]; else m[key] = 1;
+      if (!Object.keys(m).length) delete S.hl[id];
+      save(); paint();
+    });
   }
 
   /* ---------- Merkzettel ---------- */
@@ -344,11 +395,12 @@
       '<div class="qbar"><span>Karte ' + Math.min(doneN + 1, quiz.total) + ' von ' + quiz.total + ' · Fach ' + bx.f + '</span>' +
       '<button class="starbtn small' + (isStar(e.sub.id) ? ' on' : '') + '" id="qstar">' + (isStar(e.sub.id) ? '★' : '☆') + '</button></div>' +
       '<div class="progress"><i style="width:' + Math.round(doneN * 100 / Math.max(1, quiz.total)) + '%"></i></div>' +
-      '<div class="card qcard" id="qcard">' + cardHead(e) +
+      '<div class="card qcard" id="qcard" data-card="' + esc(e.sub.id) + '">' + cardHead(e) +
       '<div class="qfront" id="qfront"><p>Was gehört auf diese Karte?</p><p class="muted">Erst überlegen, dann aufdecken.</p><button class="btn primary" id="reveal">Lösung zeigen</button></div>' +
       '<div class="qback" id="qback" hidden>' + cardBody(e) + '</div></div>' +
       '<div class="qactions" id="qact" hidden><button class="btn again" id="again">✗ Nochmal</button><button class="btn primary" id="right">✓ Gewusst</button></div>' +
       '<p class="src"><a href="#/s/' + esc(e.sub.id) + '">Ganzen Inhalt ansehen</a></p></div>';
+    applyCardMarks(main);
     $('#reveal').addEventListener('click', function () { $('#qfront').hidden = true; $('#qback').hidden = false; $('#qact').hidden = false; });
     $('#qstar').addEventListener('click', function (ev) { var v = !isStar(e.sub.id); setStar(e.sub.id, v); ev.currentTarget.textContent = v ? '★' : '☆'; ev.currentTarget.classList.toggle('on', v); });
     $('#right').addEventListener('click', function () {
@@ -555,7 +607,7 @@
     if (per) {
       for (var i = 0; i < list.length; i += per) html += '<div class="page">' + list.slice(i, i + per).map(ch).join('') + '</div>';
     } else html = list.map(ch).join('');
-    sheet.innerHTML = html;
+    sheet.innerHTML = html; applyCardMarks(sheet);
     document.body.classList.remove('p-a4', 'p-a6', 'p-a7', 'p-a7x8'); document.body.classList.add('p-' + mode);
     $('#page-size').textContent = '@page{size:' + ({ a4: 'A4 portrait', a6: '105mm 148mm', a7: '74mm 105mm', a7x8: 'A4 landscape' })[mode] + ';margin:0}';
     if (!noDialog) setTimeout(function () { window.print(); }, 60);
@@ -627,6 +679,7 @@
   }
   function route() {
     var h = location.hash.replace(/^#\/?/, ''), q = '', params = {};
+    document.body.classList.remove('marking');
     var bb = $('#backbtn'), atHome = (h === '' || h === '/'); if (bb) bb.hidden = atHome; document.body.classList.toggle('has-back', !atHome);
     if (/^L-/.test(h)) return; // Sprungmarke im Lexikon
     var qi = h.indexOf('?'); if (qi >= 0) { q = h.slice(qi + 1); h = h.slice(0, qi); q.split('&').forEach(function (p) { var kv = p.split('='); params[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1] || '').replace(/\+/g, ' ')); }); }

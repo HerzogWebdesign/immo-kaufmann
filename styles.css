@@ -375,3 +375,12 @@ details.report summary::-webkit-details-marker{display:none}
 .preview.pv-a7x8 .page{grid-template-columns:repeat(4,74mm);grid-template-rows:105mm 105mm;width:296mm;height:209mm}
 .preview .page .card{box-shadow:none;border:none;outline:0.2mm dashed #9aa3ad;outline-offset:-0.1mm}
 .preview .card table.calc,.preview .card table.rules{font-size:inherit}
+
+/* ---------- Textmarker ---------- */
+.subtools{display:flex;flex-direction:column;gap:6px;flex:none}
+.markbtn.on{background:#fff3a0;border-color:#d4b200;color:#5a4a00}
+.marktip{background:#fff8cc;color:#4d4100;border-radius:8px;padding:8px 10px;font-size:14px;margin:0 0 10px}
+.linkbtn{background:none;border:none;color:inherit;text-decoration:underline;font:inherit;padding:0 0 0 6px;cursor:pointer}
+body.marking article.sub :is(p, li, tr, .note, .warn, .k-merk, .k-note):not(.src){cursor:pointer;outline:1px dashed rgba(212,178,0,.6);outline-offset:1px}
+.hl,.hl > td,.hl > th{background:rgba(255,214,0,.38) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.card .hl,.card .hl > td,.card .hl > th{background:#ffe97a !important;color:#1d232b}

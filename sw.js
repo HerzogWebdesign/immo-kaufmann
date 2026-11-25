@@ -1,5 +1,5 @@
 /* Offline-Speicher: alle Dateien der App werden beim ersten Öffnen auf dem Gerät abgelegt. */
-var VERSION = 'immo-kaufmann-v13';
+var VERSION = 'immo-kaufmann-v14';
 var FILES = [
   './', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest',
   'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
