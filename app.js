@@ -218,6 +218,7 @@
     var s = e.sub, a = e.area, prev = SUBS[e.idx - 1], next = SUBS[e.idx + 1];
     if (prev && prev.area !== a) prev = null; if (next && next.area !== a) next = null;
     document.title = s.title + ' – Immo Kaufmann';
+    var subCtx = (a.short || a.title) + ' · ' + e.num + ' ' + plain(s.title) + ' [' + s.id + ']';
     main.innerHTML = '<div class="layout with-side"><nav class="side" aria-label="Themen">' + topicsHtml(a, s.id) + '</nav>' +
       '<div class="content">' +
       '<div class="crumb"><a href="#/b/' + esc(a.id) + '">' + areaLabel(a) + ' · ' + md(a.title) + '</a> › ' + md(e.topic.title) + '</div>' +
@@ -229,7 +230,7 @@
       cardHtml(e) +
       '<div class="notebox"><label for="note">Meine Notiz</label><textarea id="note" rows="3" placeholder="z. B. was die Lehrkraft dazu gesagt hat …">' + esc(S.notes[s.id] || '') + '</textarea><small id="notesaved"></small></div>' +
       '<div class="actions"><button class="btn" id="printone">Diese Karte drucken (A6)</button></div>' +
-      '<p class="src">Quelle: ' + md(s.src) + '</p></article>' +
+      '<p class="src">Quelle: ' + md(s.src) + '</p>' + reportHtml(subCtx) + '</article>' +
       '<div class="pager">' + (prev ? '<a href="#/s/' + esc(prev.sub.id) + '"><small>Zurück</small>' + md(prev.sub.title) + '</a>' : '<span style="flex:1"></span>') +
       (next ? '<a class="next" href="#/s/' + esc(next.sub.id) + '"><small>Weiter</small>' + md(next.sub.title) + '</a>' : '<span style="flex:1"></span>') + '</div>' +
       '</div></div>';
@@ -245,7 +246,24 @@
       nt = setTimeout(function () { if (v.trim()) S.notes[s.id] = v; else delete S.notes[s.id]; save(); $('#notesaved').textContent = 'gespeichert'; }, 400);
     });
     $('#printone').addEventListener('click', function () { printCards([e], 'a6'); });
+    bindReport(subCtx);
     var cur = document.querySelector('.side [aria-current="page"]'); if (cur) cur.scrollIntoView({ block: 'center' });
+  }
+
+
+  /* ---------- Fehler melden (ohne Server: per WhatsApp oder E-Mail) ---------- */
+  var APP_VERSION = 'v11';
+  function reportHtml(ctx) {
+    return '<details class="report"><summary>Fehler gefunden?</summary><div class="report-in">' +
+      '<label for="rep-txt">Was stimmt nicht?</label><textarea id="rep-txt" rows="3" placeholder="z. B. Zahl falsch, Satz unklar, Paragraf stimmt nicht …"></textarea>' +
+      '<div class="actions"><button class="btn primary" id="rep-wa" type="button">Per WhatsApp senden</button><button class="btn" id="rep-mail" type="button">Per E-Mail</button></div>' +
+      '<small class="muted">Es wird nur dein Text und die Stelle in der App gesendet (' + esc(ctx) + ').</small></div></details>';
+  }
+  function bindReport(ctx) {
+    var msg = function () { var t = ($('#rep-txt') || {}).value || ''; return 'Fehler in Immo Kaufmann (' + APP_VERSION + ')\nStelle: ' + ctx + '\nProblem: ' + (t.trim() || '–'); };
+    var wa = $('#rep-wa'), ml = $('#rep-mail');
+    if (wa) wa.addEventListener('click', function () { window.open('https://wa.me/?text=' + encodeURIComponent(msg()), '_blank', 'noopener'); });
+    if (ml) ml.addEventListener('click', function () { location.href = 'mailto:?subject=' + encodeURIComponent('Fehler in Immo Kaufmann') + '&body=' + encodeURIComponent(msg()); });
   }
 
   /* ---------- Merkzettel ---------- */
@@ -426,7 +444,9 @@
         (q.why ? '<p>' + md(q.why) + '</p>' : '') + (q.solution ? '<div class="example">' + calcHtml(q.solution) + '</div>' : '') +
         (ok ? '' : '<p class="muted">Die Karte liegt jetzt auf deinem Merkzettel.</p>') +
         '<p><a href="#/s/' + esc(q.ref) + '">Karte „' + md(e.sub.title) + '“ ansehen</a></p></div>' +
-        '<div class="actions"><button class="btn primary" id="nextq">' + (exam.i + 1 < exam.list.length ? 'Nächste Frage' : 'Zum Ergebnis') + '</button></div>';
+        '<div class="actions"><button class="btn primary" id="nextq">' + (exam.i + 1 < exam.list.length ? 'Nächste Frage' : 'Zum Ergebnis') + '</button></div>' +
+        reportHtml('Übungsfrage ' + q.id + ': ' + plain(q.q).slice(0, 80));
+      bindReport('Übungsfrage ' + q.id + ': ' + plain(q.q).slice(0, 80));
       $('#nextq').addEventListener('click', function () { exam.i++; examQ(); window.scrollTo(0, 0); });
     }
     main.querySelectorAll('.optbtn').forEach(function (bt) {

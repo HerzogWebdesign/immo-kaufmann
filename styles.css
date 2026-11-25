@@ -322,3 +322,11 @@ a.boxf:hover{border-color:var(--accent)}
 .backbtn{font-size:28px;line-height:1;padding:0 8px 4px}
 @media (max-width:420px){ .brand{font-size:16px} .bar-in{gap:6px} }
 @media (max-width:420px){ body.has-back .brand{display:none} }
+details.report{margin:16px 0 0;border-top:1px solid var(--line);padding-top:10px}
+details.report summary{cursor:pointer;color:var(--muted);font-size:15px;min-height:40px;display:flex;align-items:center;gap:6px;list-style:none}
+details.report summary::before{content:"⚑";color:var(--warn)}
+details.report summary::-webkit-details-marker{display:none}
+.report-in label{font-weight:700;display:block;margin:6px 0 4px}
+.report-in textarea{width:100%;font:inherit;font-size:16px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--bg);color:var(--ink)}
+.report-in small{display:block;margin-top:6px;font-size:12px}
+.fb + .actions + details.report{border-top:none}
