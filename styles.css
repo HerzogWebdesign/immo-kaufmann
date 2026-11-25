@@ -382,5 +382,29 @@ details.report summary::-webkit-details-marker{display:none}
 .marktip{background:#fff8cc;color:#4d4100;border-radius:8px;padding:8px 10px;font-size:14px;margin:0 0 10px}
 .linkbtn{background:none;border:none;color:inherit;text-decoration:underline;font:inherit;padding:0 0 0 6px;cursor:pointer}
 body.marking article.sub :is(p, li, tr, .note, .warn, .k-merk, .k-note):not(.src){cursor:pointer;outline:1px dashed rgba(212,178,0,.6);outline-offset:1px}
-.hl,.hl > td,.hl > th{background:rgba(255,214,0,.38) !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.card .hl,.card .hl > td,.card .hl > th{background:#ffe97a !important;color:#1d232b}
+/* Markerfarben: im Text halbtransparent (hell + dunkel), auf der Karte kräftig */
+.hl,.hl > td,.hl > th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.hl-gelb,.hl-gelb > td,.hl-gelb > th{background:rgba(255,214,0,.40) !important}
+.hl-gruen,.hl-gruen > td,.hl-gruen > th{background:rgba(110,210,80,.38) !important}
+.hl-rosa,.hl-rosa > td,.hl-rosa > th{background:rgba(255,120,180,.36) !important}
+.hl-blau,.hl-blau > td,.hl-blau > th{background:rgba(90,170,255,.36) !important}
+.card .hl{color:#1d232b}
+.card .hl-gelb,.card .hl-gelb > td,.card .hl-gelb > th{background:#ffe97a !important}
+.card .hl-gruen,.card .hl-gruen > td,.card .hl-gruen > th{background:#c6f0b4 !important}
+.card .hl-rosa,.card .hl-rosa > td,.card .hl-rosa > th{background:#ffc9e0 !important}
+.card .hl-blau,.card .hl-blau > td,.card .hl-blau > th{background:#c4e3ff !important}
+
+/* Werkzeuge über der Lernkarte + schwebende Markerleiste */
+.essenz-label{align-items:flex-start}
+.cardtools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.cardtools .starbtn,.cardtools label.done{min-height:40px;font-size:14px;padding:4px 10px}
+.markbar{position:fixed;left:12px;right:12px;margin:0 auto;max-width:460px;bottom:calc(12px + var(--safe-bottom));z-index:30;display:flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 10px;box-shadow:0 6px 24px rgba(0,0,0,.25);flex-wrap:nowrap}
+.markbar .mb-t{font-size:13px;color:var(--muted)}
+.markbar .mb-c{width:34px;height:34px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0}
+.markbar .mb-c.on{box-shadow:0 0 0 3px var(--ink)}
+.markbar .mb-x{background:none;border:none;color:var(--muted);text-decoration:underline;font-size:13px;cursor:pointer}
+.markbar .mb-done{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:8px;padding:6px 12px;font-size:14px;font-weight:700;cursor:pointer}
+body.marking main{padding-bottom:110px}
+@media print{ .markbar{display:none !important} }
+@media (max-width:420px){ .markbar .mb-t{display:none} .markbar{gap:6px;padding:8px} }
