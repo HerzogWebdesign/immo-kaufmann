@@ -530,3 +530,5 @@ table.tt thead th.today{background:var(--accent);color:var(--accent-ink)}
 .qbar{gap:8px}
 .qbar span{flex:1}
 .qprev{min-height:38px;font-size:14px;padding:4px 10px}
+.stat-box label{display:block;margin:8px 0 4px;color:var(--ink)}
+.stat-box .gq{margin:4px 0 0}

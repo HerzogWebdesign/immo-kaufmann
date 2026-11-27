@@ -29,7 +29,8 @@
   } catch (e) {}
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
   function isDone(id) { return !!S.done[id]; }
-  function setDone(id, v) { if (v) S.done[id] = 1; else delete S.done[id]; save(); }
+  function stat(k) { try { window.dispatchEvent(new CustomEvent('immo:stat', { detail: k })); } catch (e) {} }
+  function setDone(id, v) { if (v && !S.done[id]) stat('cards_learned'); if (v) S.done[id] = 1; else delete S.done[id]; save(); }
   function isStar(id) { return !!S.star[id]; }
   function setStar(id, v) { if (v) S.star[id] = Date.now(); else delete S.star[id]; save(); }
   /* Notizen: je Karte eine Liste von Notizzetteln mit Datum; auf die Karte nur, wenn gewünscht */
@@ -188,12 +189,14 @@
     html += '<div class="section-title">Gut zu wissen</div><div class="hint">Grundlage: KMK-Rahmenlehrplan Immobilienkaufmann/-frau (2006), Ausbildungsverordnung (2006) und Stundentafel der Berufsschulverordnung MV. Deine Schule kann Reihenfolge und Themen anders verteilen – Stellen mit ⚠ zeigen das.</div>' +
       '<div class="section-title">Deine Daten</div><div class="hint">Haken, Merkzettel, Notizen, Karteikasten, Stundenplan und Termine bleiben nur auf diesem Gerät. Für ein neues Handy oder als Sicherung (ohne Foto):' +
       '<div class="actions"><button class="btn" id="exp">Sicherung speichern</button><label class="btn" for="imp">Sicherung laden</label><input type="file" id="imp" accept=".json,application/json" hidden></div></div>' +
+      (window.ImmoStats ? window.ImmoStats.homeHtml() : '') +
       '<div class="section-title">App weitergeben</div><div class="actions"><button class="btn" id="sharebtn">Link teilen (WhatsApp & Co.)</button></div>' +
       '<div class="section-title">Farbe</div>' + '<div class="colors" role="group" aria-label="Farbe">' + ACCENTS.map(function (c) {
         return '<button data-accent="' + c[0] + '" style="background:' + c[1] + '" aria-label="' + c[2] + '" title="' + c[2] + '"' + (getPref('accent', 'gruen') === c[0] ? ' class="on" aria-pressed="true"' : '') + '></button>';
       }).join('') + '</div>' + '</div>';
     main.innerHTML = html;
     $('#sharebtn').addEventListener('click', shareApp);
+    if (window.ImmoStats) window.ImmoStats.bindHome(viewHome);
     main.querySelectorAll('.colors button').forEach(function (b) { b.addEventListener('click', function () { setPref('accent', b.dataset.accent); applyTheme(); viewHome(); }); });
     main.querySelectorAll('.viewswitch button').forEach(function (b) { b.addEventListener('click', function () { setPref('tiles', b.dataset.mode); viewHome(); }); });
     $('#exp').addEventListener('click', function () {
@@ -490,11 +493,11 @@
       snap('right');
       var f = Math.min(5, bx.f + 1); S.box[e.sub.id] = { f: f, due: Date.now() + INTERVAL[f] * DAY - 36e5 };
       if (f === 5) S.done[e.sub.id] = 1;
-      save(); quiz.right++; quiz.queue.shift(); quizCard(); window.scrollTo(0, 0);
+      save(); stat('quiz_right'); quiz.right++; quiz.queue.shift(); quizCard(); window.scrollTo(0, 0);
     });
     $('#again').addEventListener('click', function () {
       snap('again');
-      S.box[e.sub.id] = { f: 1, due: 0 }; save(); quiz.again++;
+      S.box[e.sub.id] = { f: 1, due: 0 }; save(); stat('quiz_wrong'); quiz.again++;
       var id = quiz.queue.shift(); if (quiz.queue.length > 2) quiz.queue.splice(3, 0, id); else quiz.queue.push(id);
       quiz.total++; quizCard(); window.scrollTo(0, 0);
     });
@@ -586,7 +589,7 @@
       '<article class="sub qbox"><div class="rp">' + areaLabel(e.area) + ' · ' + md(e.sub.title) + '</div><h2 class="qq">' + md(q.q) + '</h2>' + body + '<div id="fb"></div></article></div>';
     var picked = [];
     function finish(ok) {
-      S.qs[q.id] = ok ? 1 : 0; if (ok) exam.pts++; else setStar(q.ref, true); save();
+      S.qs[q.id] = ok ? 1 : 0; stat(ok ? 'exam_right' : 'exam_wrong'); if (ok) exam.pts++; else setStar(q.ref, true); save();
       main.querySelectorAll('.optbtn').forEach(function (bt) {
         var i = +bt.dataset.i; bt.disabled = true;
         if (q.correct.indexOf(i) >= 0) bt.classList.add('right'); else if (picked.indexOf(i) >= 0) bt.classList.add('wrong');
@@ -896,5 +899,9 @@
   if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
     navigator.serviceWorker.register('sw.js').catch(function () {});
   }
+  window.ImmoStatsSource = function () {
+    var lf = {}; AREAS.forEach(function (a) { var st = areaStats(a); lf[a.id] = st.d + '/' + st.n; });
+    return { due: dueList(SUBS).length, extra: { gelernt_je_bereich: lf, karten_gesamt: SUBS.length } };
+  };
   window.__IMMO_DEBUG = { SUBS: SUBS, cardHtml: cardHtml, printCards: printCards, pdfCard: pdfCard };
 })();

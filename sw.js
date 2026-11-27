@@ -1,7 +1,7 @@
 /* Offline-Speicher: alle Dateien der App werden beim ersten Öffnen auf dem Gerät abgelegt. */
-var VERSION = 'immo-kaufmann-v31';
+var VERSION = 'immo-kaufmann-v32';
 var FILES = [
-  './', 'index.html', 'styles.css', 'app.js', 'pdf.js', 'plan.js', 'manifest.webmanifest',
+  './', 'index.html', 'styles.css', 'app.js', 'pdf.js', 'plan.js', 'stats.js', 'manifest.webmanifest',
   'icon-192.png', 'icon-512.png', 'apple-touch-icon.png',
   'lf1.js', 'lf2.js', 'lf3.js', 'lf4.js', 'lf5.js',
   'en.js', 'de.js', 'sk.js', 'rp.js', 'glossar.js',
